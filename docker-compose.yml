@@ -1,0 +1,12 @@
+services:
+  web:
+    build: .
+    container_name: bkmrks
+    ports:
+      - "8000:8000"
+    volumes:
+      - bkmrks-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  bkmrks-data:
