@@ -8,23 +8,58 @@ import storage
 import parser
 
 
-app = FastAPI()
+tags_metadata = [
+    {
+        "name": "articles",
+        "description": "Сохранение, чтение, поиск и удаление статей.",
+    },
+    {
+        "name": "tags",
+        "description": "Управление тегами конкретной статьи.",
+    },
+    {
+        "name": "service",
+        "description": "Служебные эндпоинты.",
+    },
+]
+
+app = FastAPI(
+    title="bkmrks",
+    description=(
+        "Инструмент для сохранения и чтения статей. "
+        "Сохраняет URL, очищает страницу через trafilatura и хранит "
+        "результат в JSON-файлах. Поддерживает теги, поиск и фильтрацию по тегам. "),
+    openapi_tags=tags_metadata)
 
 class ArticleIn(BaseModel):
-    url: HttpUrl
+    url: HttpUrl = Field(
+        description="Адрес страницы, которую нужно скачать и сохранить.",
+        examples=["https://example.com/article"])
 
 class TagIn(BaseModel):
-    tag: str
+    tag: str = Field(
+        description="Тег для добавления. Нормализуется в нижний регистр.",
+        examples=["python"])
 
 class Article(BaseModel):
-    id: str
-    url: HttpUrl
-    saved_at: datetime
-    title: str | None = None
-    content: str | None = None
-    tags: list[str] = Field(default_factory=list)
+    id: str = Field(description="Уникальный идентификатор статьи (UUID4).")
+    url: HttpUrl = Field(description="Исходный адрес сохранённой страницы.")
+    saved_at: datetime = Field(description="Момент сохранения статьи (ISO 8601).")
+    title: str | None = Field(
+        default=None,
+        description="Заголовок статьи, извлечённый парсером. Может отсутствовать.")
+    content: str | None = Field(
+        default=None,
+        description="Очищенный текст статьи.")
+    tags: list[str] = Field(
+        default_factory=list,
+        description="Список тегов статьи в нижнем регистре.")
 
-@app.post("/articles", status_code=201)
+@app.post("/articles",
+    status_code=201,
+    summary="Сохранить статью по URL",
+    tags=["articles"],
+    responses={422: {"description": "Не удалось скачать или извлечь текст страницы"}})
 def create_article(payload: ArticleIn) -> Article:
 
     article_id = str(uuid.uuid4())
@@ -60,7 +95,9 @@ def create_article(payload: ArticleIn) -> Article:
     return article
 
 
-@app.get("/articles")
+@app.get("/articles",
+    summary="Список статей с поиском и фильтром",
+    tags=["articles"])
 def list_articles(q: str | None = None, tag: str | None = None) -> list[Article]:
     articles = storage.load_all()
 
@@ -95,7 +132,10 @@ def list_articles(q: str | None = None, tag: str | None = None) -> list[Article]
 
     return [Article(**a) for a in articles]
 
-@app.get("/articles/{article_id}")
+@app.get("/articles/{article_id}",
+    summary="Получить статью по id",
+    tags=["articles"],
+    responses={404: {"description": "Статья не найдена"}})
 def read_article(article_id: str) -> Article:
     data = storage.load(article_id)
     if data is None:
@@ -103,14 +143,27 @@ def read_article(article_id: str) -> Article:
     return Article(**data)
 
 
-@app.delete("/articles/{article_id}", status_code=204)
+@app.delete("/articles/{article_id}",
+    status_code=204,
+    summary="Удалить статью",
+    tags=["articles"],
+    responses={
+        204: {"description": "Статья удалена"},
+        404: {"description": "Статья не найдена"},
+    })
 def delete_article(article_id: str) -> Response:
     if not storage.delete(article_id):
         raise HTTPException(status_code=404, detail="Article not found")
     return Response(status_code=204)
 
 
-@app.post("/articles/{article_id}/tags")
+@app.post("/articles/{article_id}/tags",
+    summary="Добавить тег к статье",
+    tags=["tags"],
+    responses={
+        404: {"description": "Статья не найдена"},
+        422: {"description": "Тег пустой"},
+    })
 def add_tag(article_id: str, payload: TagIn) -> Article:
     data = storage.load(article_id)
     if data is None:
@@ -127,7 +180,10 @@ def add_tag(article_id: str, payload: TagIn) -> Article:
     return Article(**data)
 
 
-@app.delete("/articles/{article_id}/tags/{tag}")
+@app.delete("/articles/{article_id}/tags/{tag}",
+    summary="Удалить тег у статьи",
+    tags=["tags"],
+    responses={404: {"description": "Статья не найдена"}})
 def remove_tag(article_id: str, tag: str) -> Article:
     data = storage.load(article_id)
     if data is None:
@@ -142,6 +198,8 @@ def remove_tag(article_id: str, tag: str) -> Article:
     return Article(**data)
 
 
-@app.get("/health")
+@app.get("/health",
+    summary="Проверка состояния сервиса",
+    tags=["service"],)
 def health():
     return {"status": "ok"}
