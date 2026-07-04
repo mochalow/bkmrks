@@ -1,45 +1,40 @@
 import uuid
 from datetime import datetime
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Response, APIRouter
 from pydantic import BaseModel, Field, HttpUrl
 
 import storage
 import parser
 
-
 tags_metadata = [
-    {
-        "name": "articles",
-        "description": "Сохранение, чтение, поиск и удаление статей.",
-    },
-    {
-        "name": "tags",
-        "description": "Управление тегами конкретной статьи.",
-    },
-    {
-        "name": "service",
-        "description": "Служебные эндпоинты.",
-    },
+    {"name": "articles",
+     "description": "Сохранение, чтение, поиск и удаление статей."},
+
+    {"name": "tags",
+     "description": "Управление тегами конкретной статьи."},
+
+    {"name": "service",
+     "description": "Служебные эндпоинты."}
 ]
 
 app = FastAPI(
     title="bkmrks",
-    description=(
-        "Инструмент для сохранения и чтения статей. "
-        "Сохраняет URL, очищает страницу через trafilatura и хранит "
-        "результат в JSON-файлах. Поддерживает теги, поиск и фильтрацию по тегам. "),
+    description=("Инструмент для сохранения и чтения статей. "
+                 "Сохраняет URL, очищает страницу через trafilatura и хранит "
+                 "результат в JSON-файлах. Поддерживает теги, поиск и фильтрацию по тегам. "),
     openapi_tags=tags_metadata)
 
+
 class ArticleIn(BaseModel):
-    url: HttpUrl = Field(
-        description="Адрес страницы, которую нужно скачать и сохранить.",
-        examples=["https://example.com/article"])
+    url: HttpUrl = Field(description="Адрес страницы, которую нужно скачать и сохранить.",
+                         examples=["https://example.com/article"])
+
 
 class TagIn(BaseModel):
-    tag: str = Field(
-        description="Тег для добавления. Нормализуется в нижний регистр.",
-        examples=["python"])
+    tag: str = Field(description="Тег для добавления. Нормализуется в нижний регистр.",
+                     examples=["python"])
+
 
 class Article(BaseModel):
     id: str = Field(description="Уникальный идентификатор статьи (UUID4).")
@@ -55,13 +50,14 @@ class Article(BaseModel):
         default_factory=list,
         description="Список тегов статьи в нижнем регистре.")
 
-@app.post("/articles",
-    status_code=201,
-    summary="Сохранить статью по URL",
-    tags=["articles"],
-    responses={422: {"description": "Не удалось скачать или извлечь текст страницы"}})
-def create_article(payload: ArticleIn) -> Article:
 
+# Ручки объявляются на роутере без префикса.
+router = APIRouter()
+
+
+@router.post("/articles", status_code=201, summary="Сохранить статью по URL", tags=["articles"],
+             responses={422: {"description": "Не удалось скачать или извлечь текст страницы"}})
+def create_article(payload: ArticleIn) -> Article:
     article_id = str(uuid.uuid4())
     saved_at = datetime.now().replace(microsecond=0)
 
@@ -95,9 +91,7 @@ def create_article(payload: ArticleIn) -> Article:
     return article
 
 
-@app.get("/articles",
-    summary="Список статей с поиском и фильтром",
-    tags=["articles"])
+@router.get("/articles", summary="Список статей с поиском и фильтром", tags=["articles"])
 def list_articles(q: str | None = None, tag: str | None = None) -> list[Article]:
     articles = storage.load_all()
 
@@ -132,10 +126,9 @@ def list_articles(q: str | None = None, tag: str | None = None) -> list[Article]
 
     return [Article(**a) for a in articles]
 
-@app.get("/articles/{article_id}",
-    summary="Получить статью по id",
-    tags=["articles"],
-    responses={404: {"description": "Статья не найдена"}})
+
+@router.get("/articles/{article_id}", summary="Получить статью по id", tags=["articles"],
+            responses={404: {"description": "Статья не найдена"}})
 def read_article(article_id: str) -> Article:
     data = storage.load(article_id)
     if data is None:
@@ -143,27 +136,16 @@ def read_article(article_id: str) -> Article:
     return Article(**data)
 
 
-@app.delete("/articles/{article_id}",
-    status_code=204,
-    summary="Удалить статью",
-    tags=["articles"],
-    responses={
-        204: {"description": "Статья удалена"},
-        404: {"description": "Статья не найдена"},
-    })
+@router.delete("/articles/{article_id}", status_code=204, summary="Удалить статью", tags=["articles"],
+               responses={204: {"description": "Статья удалена"}, 404: {"description": "Статья не найдена"}})
 def delete_article(article_id: str) -> Response:
     if not storage.delete(article_id):
         raise HTTPException(status_code=404, detail="Article not found")
     return Response(status_code=204)
 
 
-@app.post("/articles/{article_id}/tags",
-    summary="Добавить тег к статье",
-    tags=["tags"],
-    responses={
-        404: {"description": "Статья не найдена"},
-        422: {"description": "Тег пустой"},
-    })
+@router.post("/articles/{article_id}/tags", summary="Добавить тег к статье", tags=["tags"],
+             responses={404: {"description": "Статья не найдена"}, 422: {"description": "Тег пустой"}})
 def add_tag(article_id: str, payload: TagIn) -> Article:
     data = storage.load(article_id)
     if data is None:
@@ -180,10 +162,8 @@ def add_tag(article_id: str, payload: TagIn) -> Article:
     return Article(**data)
 
 
-@app.delete("/articles/{article_id}/tags/{tag}",
-    summary="Удалить тег у статьи",
-    tags=["tags"],
-    responses={404: {"description": "Статья не найдена"}})
+@router.delete("/articles/{article_id}/tags/{tag}", summary="Удалить тег у статьи", tags=["tags"],
+               responses={404: {"description": "Статья не найдена"}})
 def remove_tag(article_id: str, tag: str) -> Article:
     data = storage.load(article_id)
     if data is None:
@@ -198,8 +178,10 @@ def remove_tag(article_id: str, tag: str) -> Article:
     return Article(**data)
 
 
-@app.get("/health",
-    summary="Проверка состояния сервиса",
-    tags=["service"],)
+@router.get("/health", summary="Проверка состояния сервиса", tags=["service"])
 def health():
     return {"status": "ok"}
+
+
+# Копирует маршруты, существующие на роутере в момент вызова
+app.include_router(router, prefix="/api")
