@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 
 from fastapi import FastAPI, HTTPException, Response, APIRouter
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, HttpUrl
 
 import storage
@@ -51,7 +52,7 @@ class Article(BaseModel):
         description="Список тегов статьи в нижнем регистре.")
 
 
-# Ручки объявляются на роутере без префикса.
+# Ручки объявляются на роутере без префикса
 router = APIRouter()
 
 
@@ -185,3 +186,6 @@ def health():
 
 # Копирует маршруты, существующие на роутере в момент вызова
 app.include_router(router, prefix="/api")
+
+# Статика монтируется последней
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
