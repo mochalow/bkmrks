@@ -7,7 +7,79 @@
     <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
-    <h1>bkmrks</h1>
-    <p>Здесь будет список сохранённых статей.</p>
+<div class="page">
+
+    <header class="topbar">
+        <a class="brand" href="/">
+            <svg class="brand-mark" width="24" height="29" viewBox="0 0 40 48" aria-hidden="true">
+                <path d="M0,6 A6,6 0 0 1 6,0 H34 A6,6 0 0 1 40,6 V48 L20,36 L0,48 Z"/>
+            </svg>
+            <span class="brand-name">bkmrks</span>
+        </a>
+
+        <form class="save-form">
+            <input class="save-input" type="url" placeholder="Вставьте ссылку на статью…" aria-label="Адрес статьи">
+            <button class="btn btn-primary" type="submit">Сохранить</button>
+        </form>
+    </header>
+
+    <main>
+        <div class="filters">
+            <div class="search">
+                <span class="search-icon" aria-hidden="true">🔍</span>
+                <input class="search-input" type="search" placeholder="Поиск по словам" aria-label="Поиск по словам">
+            </div>
+            <div class="chips">
+                <button class="chip is-active" type="button">все</button>
+                <button class="chip" type="button">python</button>
+                <button class="chip" type="button">docker</button>
+                <button class="chip" type="button">капуста кимчи</button>
+            </div>
+        </div>
+
+        <section class="cards">
+
+            <article class="card">
+                <div class="card-head">
+                    <h2 class="card-title">Веб-сайт об эффективной разработке программного обеспечения</h2>
+                    <time class="card-date" datetime="2026-07-02">2 июл</time>
+                </div>
+                <div class="card-domain">martinfowler.com</div>
+                <p class="card-excerpt">Разработка программного обеспечения — молодая профессия, и мы всё ещё осваиваем методы и создаём инструменты для эффективной работы. Я занимаюсь этим делом более тридцати лет, и последние два года пишу на этом сайте о шаблонах и практиках, которые упрощают создание полезного программного обеспечения. Сайт начинался как площадка для моих собственных статей, но я также использую его для публикации статей моих коллег…</p>
+                <div class="card-tags">
+                    <span class="tag">python</span>
+                    <span class="tag">архитектура</span>
+                </div>
+            </article>
+
+            <article class="card">
+                <div class="card-head">
+                    <h2 class="card-title">trafilatura: как достать основной текст из любой страницы</h2>
+                    <time class="card-date" datetime="2026-07-01">1 июл</time>
+                </div>
+                <div class="card-domain">trafilatura.readthedocs.io</div>
+                <p class="card-excerpt">Trafilatura - это пакет Python и инструмент командной строки, предназначенный для сбора текста в Интернете. Он включает в себя компоненты обнаружения, извлечения и обработки текста. Его основными приложениями являются сканирование веб-страниц, загрузка, соскоб и извлечение основных текстов, метаданных и комментариев. Он направлен на то, чтобы оставаться удобным и модульным: база данных не требуется, выход может быть преобразован в обычно используемые форматы…</p>
+                <div class="card-tags">
+                    <span class="tag">python</span>
+                    <span class="tag">docker</span>
+                </div>
+            </article>
+
+            <article class="card">
+                <div class="card-head">
+                    <h2 class="card-title">Read-it-later без облака: маленький self-hosted Pocket</h2>
+                    <time class="card-date" datetime="2026-06-28">28 июн</time>
+                </div>
+                <div class="card-domain">ru.wikipedia.org/wiki/Кимчхи</div>
+                <p class="card-excerpt">Кимчхи́ (кор. 김치?, 沈菜?; в диалектах: чимчхи́, чимчха́, чим-ча́, в русскоязычных текстах встречается написание кимчи́, ким-чи́) — блюдо корейской кухни, представляющее собой остро приправленные квашеные (ферментированные) овощи, в первую очередь, пекинскую капусту…</p>
+                <div class="card-tags">
+                    <span class="tag">капуста кимчи</span>
+                </div>
+            </article>
+
+        </section>
+    </main>
+
+</div>
 </body>
 </html>
