@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>bkmrks</title>
     <link rel="stylesheet" href="/css/app.css">
+    <script type="module" src="/js/library.js"></script>
 </head>
 <body>
 <div class="page">
@@ -37,49 +38,24 @@
             </div>
         </div>
 
-        <section class="cards">
-
-            <article class="card">
-                <div class="card-head">
-                    <h2 class="card-title">Веб-сайт об эффективной разработке программного обеспечения</h2>
-                    <time class="card-date" datetime="2026-07-02">2 июл</time>
-                </div>
-                <div class="card-domain">martinfowler.com</div>
-                <p class="card-excerpt">Разработка программного обеспечения — молодая профессия, и мы всё ещё осваиваем методы и создаём инструменты для эффективной работы. Я занимаюсь этим делом более тридцати лет, и последние два года пишу на этом сайте о шаблонах и практиках, которые упрощают создание полезного программного обеспечения. Сайт начинался как площадка для моих собственных статей, но я также использую его для публикации статей моих коллег…</p>
-                <div class="card-tags">
-                    <span class="tag">python</span>
-                    <span class="tag">архитектура</span>
-                </div>
-            </article>
-
-            <article class="card">
-                <div class="card-head">
-                    <h2 class="card-title">trafilatura: как достать основной текст из любой страницы</h2>
-                    <time class="card-date" datetime="2026-07-01">1 июл</time>
-                </div>
-                <div class="card-domain">trafilatura.readthedocs.io</div>
-                <p class="card-excerpt">Trafilatura - это пакет Python и инструмент командной строки, предназначенный для сбора текста в Интернете. Он включает в себя компоненты обнаружения, извлечения и обработки текста. Его основными приложениями являются сканирование веб-страниц, загрузка, соскоб и извлечение основных текстов, метаданных и комментариев. Он направлен на то, чтобы оставаться удобным и модульным: база данных не требуется, выход может быть преобразован в обычно используемые форматы…</p>
-                <div class="card-tags">
-                    <span class="tag">python</span>
-                    <span class="tag">docker</span>
-                </div>
-            </article>
-
-            <article class="card">
-                <div class="card-head">
-                    <h2 class="card-title">Read-it-later без облака: маленький self-hosted Pocket</h2>
-                    <time class="card-date" datetime="2026-06-28">28 июн</time>
-                </div>
-                <div class="card-domain">ru.wikipedia.org/wiki/Кимчхи</div>
-                <p class="card-excerpt">Кимчхи́ (кор. 김치?, 沈菜?; в диалектах: чимчхи́, чимчха́, чим-ча́, в русскоязычных текстах встречается написание кимчи́, ким-чи́) — блюдо корейской кухни, представляющее собой остро приправленные квашеные (ферментированные) овощи, в первую очередь, пекинскую капусту…</p>
-                <div class="card-tags">
-                    <span class="tag">капуста кимчи</span>
-                </div>
-            </article>
-
-        </section>
+        <section class="cards" id="cards"></section>
+        <p class="cards-status" id="cards-status">Библиотека загружается...</p>
     </main>
 
 </div>
+
+<template id="card-template">
+    <article class="card">
+        <div class="card-head">
+            <h2 class="card-title"></h2>
+            <time class="card-date"></time>
+        </div>
+        <div class="card-domain"></div>
+        <p class="card-excerpt"></p>
+        <div class="card-tags">
+            <span class="tag"></span>
+        </div>
+    </article>
+</template>
 </body>
 </html>

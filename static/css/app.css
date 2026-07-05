@@ -248,6 +248,14 @@ input::placeholder {
     gap: 14px;
 }
  
+/* display управляется library.js, поэтому не задан */
+.cards-status {
+    margin: 6px 0 0;
+    padding: 16px 24px;
+    font-size: 14.5px;
+    color: var(--muted);
+}
+
 .card {
     padding: 22px 24px;
     background: var(--card);
@@ -292,6 +300,12 @@ input::placeholder {
     font-size: 14.5px;
     line-height: 1.6;
     color: var(--ink-soft);
+    /* JS передаёт первые ~300 символов, режем до 2 строк */
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
 }
  
 .card-tags {
