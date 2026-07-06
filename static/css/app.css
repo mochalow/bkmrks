@@ -229,9 +229,9 @@ h1, h2, h3 {
 
 .filters {
     display: flex;
-    align-items: center;
-    gap: 20px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
     margin-bottom: 22px;
 }
 
@@ -239,7 +239,7 @@ h1, h2, h3 {
     display: flex;
     align-items: center;
     gap: 8px;
-    min-width: 220px;
+    max-width: 360px;
     padding: 8px 14px;
     background: var(--card);
     border: 1.5px solid var(--line-strong);
@@ -271,10 +271,56 @@ input::placeholder {
     color: var(--muted-3);
 }
 
+.tags-bar {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.chips-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+}
+
+.chips-wrap:has(.chips.is-collapsed)::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 22px;
+    background: linear-gradient(to bottom, transparent, var(--paper));
+    pointer-events: none;
+}
+
 .chips {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
+    min-width: 0;
+}
+
+.chips.is-collapsed {
+    max-height: 72px;
+    overflow: hidden;
+}
+
+.tags-toggle {
+    flex-shrink: 0;
+    padding: 7px 13px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    background: transparent;
+    border: 1.5px dashed var(--line-strong);
+    border-radius: var(--r-chip);
+    cursor: pointer;
+}
+
+.tags-toggle:hover {
+    color: var(--sage-text);
+    border-color: var(--sage);
 }
 
 .chip {
@@ -286,6 +332,10 @@ input::placeholder {
     border: none;
     border-radius: var(--r-chip);
     cursor: pointer;
+    max-width: 24ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .chip.is-active {
@@ -386,6 +436,10 @@ input::placeholder {
     color: var(--sage-text);
     background: var(--sage-tint);
     border-radius: var(--r-chip);
+    max-width: 24ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* --- Читалка --- */
@@ -469,9 +523,19 @@ input::placeholder {
     align-items: center;
     gap: 2px;
     padding: 5px 4px 5px 11px;
+    max-width: 100%;
+}
+
+.tag-name {
+    min-width: 0;
+    max-width: 24ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .tag-remove {
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -564,14 +628,8 @@ input::placeholder {
         min-width: 0;
     }
 
-    .filters {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 14px;
-    }
-
     .search {
-        min-width: 0;
+        max-width: none;
     }
 
     .card {

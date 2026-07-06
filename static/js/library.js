@@ -6,11 +6,12 @@
  * состояние читается оттуда).
  */
 
-import {createApp, ref, watch, onMounted} from "vue";
+import {createApp, ref, watch, onMounted, onUnmounted, nextTick} from "vue";
 import {createArticle, listArticles} from "/js/api.js";
 import {dateShort, domainOf, excerptOf} from "/js/format.js";
 
 const DEBOUNCE_MS = 300;
+const CHIPS_COLLAPSED_MAX = 72;
 
 createApp({
     setup() {
@@ -22,6 +23,9 @@ createApp({
         const newUrl = ref("");
         const saving = ref(false);
         const saveError = ref("");
+        const tagsExpanded = ref(false);
+        const tagsOverflow = ref(false);
+        const chipsEl = ref(null);
 
         // Фильтры из адреса
         const params = new URLSearchParams(location.search);
@@ -87,6 +91,16 @@ createApp({
                 tags.push(activeTag.value);
             }
             allTags.value = tags;
+            await nextTick();
+            updateTagsOverflow();
+        }
+
+        function updateTagsOverflow() {
+            const el = chipsEl.value;
+            tagsOverflow.value = el ? el.scrollHeight > CHIPS_COLLAPSED_MAX : false;
+            if (!tagsOverflow.value) {
+                tagsExpanded.value = false;
+            }
         }
 
         // Сохранение статьи
@@ -109,8 +123,16 @@ createApp({
 
         const readerHref = (id) => "/reader.html?id=" + encodeURIComponent(id);
 
+        // Активный тег из ссылки должен быть виден сразу
+        watch(activeTag, (tag) => {
+            if (tag) tagsExpanded.value = true;
+        }, {immediate: true});
+
+        const onResize = () => updateTagsOverflow();
+
         // Первая загрузка. Чипы, потом список по фильтрам
         onMounted(async () => {
+            window.addEventListener("resize", onResize);
             try {
                 await loadChips();
             } catch (err) {
@@ -120,8 +142,11 @@ createApp({
             await refreshList();
         });
 
+        onUnmounted(() => window.removeEventListener("resize", onResize));
+
         return {
             articles, allTags, q, activeTag, status, newUrl, saving, saveError,
+            tagsExpanded, tagsOverflow, chipsEl,
             save, selectTag, domainOf, excerptOf, dateShort, readerHref,
         };
     }

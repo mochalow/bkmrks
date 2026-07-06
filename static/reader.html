@@ -46,7 +46,7 @@
 
             <div class="reader-tags">
                 <span class="tag" v-for="tag in article.tags" :key="tag">
-                    <span class="tag-name">{{ tag }}</span>
+                    <span class="tag-name" :title="tag">{{ tag }}</span>
                     <button class="tag-remove" type="button"
                             :aria-label="'Убрать тег ' + tag"
                             :disabled="removingTag === tag"

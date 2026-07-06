@@ -9,7 +9,7 @@
     <script type="importmap">
         {
           "imports": {
-            "vue": "https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.esm-browser.js"
+            "vue": "https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.esm-browser.prod.js"
           }
         }
     </script>
@@ -54,12 +54,22 @@
                 <input class="search-input" type="search" v-model="q" placeholder="Поиск"
                        aria-label="Поиск">
             </div>
-            <div class="chips">
-                <button class="chip" type="button" :class="{ 'is-active': activeTag === '' }"
-                        @click="selectTag('')">все
-                </button>
-                <button v-for="tag in allTags" :key="tag" class="chip" type="button"
-                        :class="{ 'is-active': activeTag === tag }" @click="selectTag(tag)">{{ tag }}
+            <div class="tags-bar">
+                <div class="chips-wrap">
+                    <div class="chips" ref="chipsEl"
+                         :class="{ 'is-collapsed': tagsOverflow && !tagsExpanded }">
+                        <button class="chip" type="button" :class="{ 'is-active': activeTag === '' }"
+                                @click="selectTag('')">все
+                        </button>
+                        <button v-for="tag in allTags" :key="tag" class="chip" type="button"
+                                :class="{ 'is-active': activeTag === tag }" :title="tag"
+                                @click="selectTag(tag)">{{ tag }}
+                        </button>
+                    </div>
+                </div>
+                <button v-if="tagsOverflow" class="tags-toggle" type="button"
+                        :aria-expanded="tagsExpanded" @click="tagsExpanded = !tagsExpanded">
+                    {{ tagsExpanded ? "Свернуть" : "Все теги" }}
                 </button>
             </div>
         </div>
@@ -78,7 +88,7 @@
                         {{ excerptOf(article.content) }}
                     </p>
                     <div class="card-tags" v-if="article.tags.length">
-                        <span class="tag" v-for="tag in article.tags" :key="tag">{{ tag }}</span>
+                        <span class="tag" v-for="tag in article.tags" :key="tag" :title="tag">{{ tag }}</span>
                     </div>
                 </article>
             </a>
