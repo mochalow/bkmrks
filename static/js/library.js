@@ -25,6 +25,7 @@ createApp({
         const saveError = ref("");
         const tagsExpanded = ref(false);
         const tagsOverflow = ref(false);
+        const hiddenTagCount = ref(0);
         const chipsEl = ref(null);
 
         // Фильтры из адреса
@@ -97,10 +98,23 @@ createApp({
 
         function updateTagsOverflow() {
             const el = chipsEl.value;
-            tagsOverflow.value = el ? el.scrollHeight > CHIPS_COLLAPSED_MAX : false;
-            if (!tagsOverflow.value) {
-                tagsExpanded.value = false;
+            if (!el) {
+                tagsOverflow.value = false;
+                hiddenTagCount.value = 0;
+                return;
             }
+
+            const overflows = el.scrollHeight > CHIPS_COLLAPSED_MAX;
+            tagsOverflow.value = overflows;
+            if (!overflows) {
+                tagsExpanded.value = false;
+                hiddenTagCount.value = 0;
+                return;
+            }
+
+            hiddenTagCount.value = [...el.querySelectorAll(".chip")]
+                .filter((chip) => chip.offsetTop >= CHIPS_COLLAPSED_MAX)
+                .length;
         }
 
         // Сохранение статьи
@@ -146,7 +160,7 @@ createApp({
 
         return {
             articles, allTags, q, activeTag, status, newUrl, saving, saveError,
-            tagsExpanded, tagsOverflow, chipsEl,
+            tagsExpanded, tagsOverflow, hiddenTagCount, chipsEl,
             save, selectTag, domainOf, excerptOf, dateShort, readerHref,
         };
     }

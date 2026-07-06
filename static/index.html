@@ -66,11 +66,11 @@
                                 @click="selectTag(tag)">{{ tag }}
                         </button>
                     </div>
+                    <button v-if="tagsOverflow" class="chip chip-more" type="button"
+                            :aria-expanded="tagsExpanded" @click="tagsExpanded = !tagsExpanded">
+                        {{ tagsExpanded ? "Свернуть" : "Ещё " + hiddenTagCount }}
+                    </button>
                 </div>
-                <button v-if="tagsOverflow" class="tags-toggle" type="button"
-                        :aria-expanded="tagsExpanded" @click="tagsExpanded = !tagsExpanded">
-                    {{ tagsExpanded ? "Свернуть" : "Все теги" }}
-                </button>
             </div>
         </div>
 

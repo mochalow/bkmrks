@@ -272,26 +272,14 @@ input::placeholder {
 }
 
 .tags-bar {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
+    width: 100%;
 }
 
 .chips-wrap {
-    position: relative;
-    flex: 1;
-    min-width: 0;
-}
-
-.chips-wrap:has(.chips.is-collapsed)::after {
-    content: "";
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    height: 22px;
-    background: linear-gradient(to bottom, transparent, var(--paper));
-    pointer-events: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: flex-start;
 }
 
 .chips {
@@ -302,25 +290,9 @@ input::placeholder {
 }
 
 .chips.is-collapsed {
+    flex: 1 1 100%;
     max-height: 72px;
     overflow: hidden;
-}
-
-.tags-toggle {
-    flex-shrink: 0;
-    padding: 7px 13px;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--muted);
-    background: transparent;
-    border: 1.5px dashed var(--line-strong);
-    border-radius: var(--r-chip);
-    cursor: pointer;
-}
-
-.tags-toggle:hover {
-    color: var(--sage-text);
-    border-color: var(--sage);
 }
 
 .chip {
@@ -342,6 +314,17 @@ input::placeholder {
     font-weight: 600;
     color: var(--ink);
     background: var(--amber);
+}
+
+.chip.chip-more {
+    color: var(--muted);
+    background: transparent;
+    border: 1.5px dashed var(--line-strong);
+}
+
+.chip.chip-more:hover {
+    color: var(--sage-text);
+    border-color: var(--sage);
 }
 
 /* --- Карточки статей --- */
