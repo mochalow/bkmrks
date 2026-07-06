@@ -4,10 +4,71 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>bkmrks — читалка</title>
+
+    <script type="importmap">
+        {
+          "imports": {
+            "vue": "https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.esm-browser.js"
+          }
+        }
+    </script>
+
     <link rel="stylesheet" href="/css/app.css">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <script type="module" src="/js/reader.js"></script>
 </head>
 <body>
-    <h1>bkmrks — читалка</h1>
-    <p>Здесь будет текст статьи.</p>
+
+<div id="app" v-cloak>
+
+    <header class="reader-toolbar">
+        <a class="toolbar-back" href="/">← В библиотеку</a>
+
+        <!-- Действия появляются только когда статья загружена -->
+        <div class="toolbar-actions" v-if="article">
+            <a class="btn-secondary" :href="article.url" target="_blank" rel="noopener">Оригинал ↗</a>
+            <button class="btn-danger" type="button"
+                    :disabled="deleting" @click="removeArticle">Удалить
+            </button>
+        </div>
+    </header>
+
+    <main class="reader">
+        <p class="reader-status" v-if="status">{{ status }}</p>
+        <a class="reader-back-link" href="/" v-if="showBackLink">← В библиотеку</a>
+
+        <article v-if="article">
+            <p class="reader-meta">
+                <span>{{ domainOf(article.url) }}</span> · сохранено
+                <time :datetime="article.saved_at">{{ dateLong(article.saved_at) }}</time>
+            </p>
+            <h1 class="reader-title">{{ article.title || "Без заголовка" }}</h1>
+
+            <div class="reader-tags">
+                <span class="tag" v-for="tag in article.tags" :key="tag">
+                    <span class="tag-name">{{ tag }}</span>
+                    <button class="tag-remove" type="button"
+                            :aria-label="'Убрать тег ' + tag"
+                            :disabled="removingTag === tag"
+                            @click="dropTag(tag)">×</button>
+                </span>
+
+                <button class="tag-add" type="button" ref="addTagButton"
+                        v-if="!tagFormOpen" @click="openTagForm">+ тег
+                </button>
+                <form class="tag-form" v-else @submit.prevent="submitTag">
+                    <input class="tag-input" type="text" ref="tagInput" v-model="newTag"
+                           :disabled="addingTag" placeholder="имя тега"
+                           aria-label="Имя нового тега" @keydown.esc="closeTagForm">
+                </form>
+            </div>
+            
+            <div class="reader-content">
+                <p v-for="(para, i) in paragraphs" :key="i">{{ para }}</p>
+            </div>
+        </article>
+    </main>
+</div>
+
 </body>
 </html>
