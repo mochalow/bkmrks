@@ -8,12 +8,8 @@
 
 import {createApp, ref, watch, onMounted} from "vue";
 import {createArticle, listArticles} from "/js/api.js";
+import {dateShort, domainOf, excerptOf} from "/js/format.js";
 
-// Количество символов статьи для выдержки.
-// Обрезку до двух строк делает CSS
-const PREVIEW_LIMIT = 300;
-
-// Пауза после последнего нажатия, прежде чем уйдёт запрос поиска
 const DEBOUNCE_MS = 300;
 
 createApp({
@@ -110,10 +106,7 @@ createApp({
                 saving.value = false;
             }
         }
-        
-        const domainOf = (url) => new URL(url).hostname;
-        const excerptOf = (content) => (content || "").slice(0, PREVIEW_LIMIT);
-        const dateShort = (iso) => new Date(iso).toLocaleDateString("ru", {day: "numeric", month: "short"});
+
         const readerHref = (id) => "/reader.html?id=" + encodeURIComponent(id);
 
         // Первая загрузка. Чипы, потом список по фильтрам
@@ -129,7 +122,7 @@ createApp({
 
         return {
             articles, allTags, q, activeTag, status, newUrl, saving, saveError,
-            save, selectTag, domainOf, excerptOf, dateShort, readerHref
+            save, selectTag, domainOf, excerptOf, dateShort, readerHref,
         };
     }
 }).mount("#app");

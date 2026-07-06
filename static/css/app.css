@@ -87,15 +87,75 @@ h1, h2, h3 {
     color: var(--ink);
 }
 
-/* --- Библиотека (index.html) --- */
+/* --- Кнопки --- */
+
+.btn {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--r-control);
+    cursor: pointer;
+}
+
+.btn-primary {
+    background: var(--amber);
+    color: var(--ink);
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: var(--amber-hover);
+}
+
+.btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+    background: var(--card);
+    border: 1.5px solid var(--line-strong);
+    border-radius: var(--r-control);
+}
+
+.btn-secondary:hover {
+    border-color: var(--amber);
+}
+
+.btn-danger {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--card);
+    background: var(--danger);
+    border: none;
+    border-radius: var(--r-control);
+    cursor: pointer;
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: var(--danger-hover);
+}
+
+.btn-danger:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* --- Библиотека --- */
 
 .page {
     max-width: 1040px;
     margin: 0 auto;
     padding: 28px 32px 48px;
 }
-
-/* Шапка: знак, имя, поле сохранения */
 
 .topbar {
     display: flex;
@@ -142,6 +202,10 @@ h1, h2, h3 {
     border-color: var(--amber);
 }
 
+.save-form .btn {
+    border-radius: calc(var(--r-control) - 4px);
+}
+
 .save-input {
     flex: 1;
     min-width: 0; /* Иначе flex не даст полю сжаться при переносе */
@@ -162,70 +226,6 @@ h1, h2, h3 {
     background: var(--danger-tint);
     border-radius: var(--r-chip);
 }
-
-/* --- Кнопки --- */
-
-.btn {
-    padding: 10px 20px;
-    font-size: 14px;
-    font-weight: 600;
-    border: none;
-    border-radius: var(--r-control);
-    cursor: pointer;
-}
-
-.btn-primary {
-    background: var(--amber);
-    color: var(--ink);
-}
-
-.btn-primary:hover {
-    background: var(--amber-hover);
-}
-
-.btn:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-}
-
-.btn-secondary {
-    display: inline-flex;
-    align-items: center;
-    padding: 10px 20px;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--ink);
-    text-decoration: none;
-    background: var(--card);
-    border: 1.5px solid var(--line-strong);
-    border-radius: var(--r-control);
-}
-
-.btn-secondary:hover {
-    border-color: var(--amber);
-}
-
-.btn-danger {
-    padding: 10px 20px;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--card);
-    background: var(--danger);
-    border: none;
-    border-radius: var(--r-control);
-    cursor: pointer;
-}
-
-.btn-danger:hover {
-    background: var(--danger-hover);
-}
-
-/* Вложенный радиус = внешний - отступ контейнера */
-.save-form .btn {
-    border-radius: calc(var(--r-control) - 4px);
-}
-
-/* --- Фильтры: поиск и чипы тегов --- */
 
 .filters {
     display: flex;
@@ -251,7 +251,8 @@ h1, h2, h3 {
 }
 
 .search-icon {
-    font-size: 13.5px;
+    flex-shrink: 0;
+    color: var(--muted-3);
 }
 
 .search-input {
@@ -309,9 +310,13 @@ input::placeholder {
 
 .cards-status {
     margin: 6px 0 0;
-    padding: 16px 24px;
+    padding: 20px 24px;
     font-size: 14.5px;
     color: var(--muted);
+    text-align: center;
+    background: var(--card);
+    border: 1px dashed var(--line);
+    border-radius: var(--r-card);
 }
 
 .card {
@@ -319,11 +324,12 @@ input::placeholder {
     background: var(--card);
     border: 1px solid var(--line);
     border-radius: var(--r-card);
-    transition: border-color 0.15s ease;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .card:hover {
     border-color: var(--amber);
+    box-shadow: 0 2px 12px rgba(33, 31, 27, 0.04);
 }
 
 .card-head {
@@ -385,23 +391,26 @@ input::placeholder {
 /* --- Читалка --- */
 
 .reader-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    padding: 18px 32px;
+    padding: 16px 32px;
+    background: var(--paper);
+    border-bottom: 1px solid var(--line);
 }
 
-.toolbar-back,
-.reader-back-link {
+.back-link {
     font-size: 14px;
     font-weight: 500;
     color: var(--muted);
     text-decoration: none;
 }
 
-.toolbar-back:hover,
-.reader-back-link:hover {
+.back-link:hover {
     color: var(--ink);
 }
 
@@ -409,6 +418,7 @@ input::placeholder {
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-shrink: 0;
 }
 
 .reader {
@@ -419,8 +429,13 @@ input::placeholder {
 
 .reader-status {
     margin: 0 0 16px;
+    padding: 16px 20px;
     font-size: 15px;
     color: var(--muted);
+    text-align: center;
+    background: var(--card);
+    border: 1px dashed var(--line);
+    border-radius: var(--r-card);
 }
 
 .reader-back-link {
@@ -472,7 +487,7 @@ input::placeholder {
     cursor: pointer;
 }
 
-.tag-remove:hover {
+.tag-remove:hover:not(:disabled) {
     color: var(--danger);
     background: var(--danger-tint);
 }
@@ -529,4 +544,69 @@ input::placeholder {
 
 .reader-content p:last-child {
     margin-bottom: 0;
+}
+
+/* --- Адаптив --- */
+
+@media (max-width: 640px) {
+    .page {
+        padding: 20px 16px 36px;
+    }
+
+    .topbar {
+        flex-direction: column;
+        align-items: stretch;
+        margin-bottom: 20px;
+    }
+
+    .save-form {
+        max-width: none;
+        min-width: 0;
+    }
+
+    .filters {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
+    }
+
+    .search {
+        min-width: 0;
+    }
+
+    .card {
+        padding: 18px 20px;
+    }
+
+    .card-head {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .card-title {
+        font-size: 19px;
+    }
+
+    .reader-toolbar {
+        padding: 12px 16px;
+    }
+
+    .reader {
+        padding: 24px 16px 48px;
+    }
+
+    .reader-title {
+        font-size: 26px;
+    }
+
+    .toolbar-actions {
+        gap: 8px;
+    }
+
+    .btn-secondary,
+    .btn-danger {
+        padding: 8px 14px;
+        font-size: 13px;
+    }
 }

@@ -83,39 +83,31 @@ def create_article(payload: ArticleIn) -> Article:
     return article
 
 
+def _normalize(value: str | None) -> str:
+    return (value or "").strip().lower()
+
+
+def _matches_query(article: dict, query: str) -> bool:
+    title = (article.get("title") or "").lower()
+    content = (article.get("content") or "").lower()
+    return query in title or query in content
+
+
 @router.get("/articles", summary="Список статей с поиском и фильтром", tags=["articles"])
 def list_articles(q: str | None = None, tag: str | None = None) -> list[Article]:
     articles = storage.load_all()
 
     # Фильтр по тегу
     if tag:
-        search = tag.strip().lower()
-
-        filtered_articles = []
-        for article in articles:
-            tags = article.get("tags", [])
-            if search in tags:
-                filtered_articles.append(article)
-
-        articles = filtered_articles
+        needle = _normalize(tag)
+        articles = [a for a in articles if needle in a.get("tags", [])]
 
     # Поиск: подстрока в заголовке или тексте
     if q:
-        search = q.strip().lower()
+        needle = _normalize(q)
+        articles = [a for a in articles if _matches_query(a, needle)]
 
-        filtered_articles = []
-        for article in articles:
-            title = article.get("title") or ""
-            content = article.get("content") or ""
-
-            if search in title.lower() or search in content.lower():
-                filtered_articles.append(article)
-
-        articles = filtered_articles
-
-    # Новые статьи сверху
     articles.sort(key=lambda a: a["saved_at"], reverse=True)
-
     return [Article(**a) for a in articles]
 
 
@@ -143,7 +135,7 @@ def add_tag(article_id: str, payload: TagIn) -> Article:
     if data is None:
         raise HTTPException(status_code=404, detail="Статья не найдена")
 
-    tag = payload.tag.strip().lower()
+    tag = _normalize(payload.tag)
     if not tag:
         raise HTTPException(status_code=422, detail="Тег не может быть пустым")
 
@@ -162,9 +154,9 @@ def remove_tag(article_id: str, tag: str) -> Article:
         raise HTTPException(status_code=404, detail="Статья не найдена")
 
     # Если тега нет, просто возвращаем статью без изменений
-    search = tag.strip().lower()
-    if search in data["tags"]:
-        data["tags"].remove(search)
+    needle = _normalize(tag)
+    if needle in data["tags"]:
+        data["tags"].remove(needle)
         storage.save(data)
 
     return Article(**data)

@@ -25,6 +25,12 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# Windows alternate data streams (WSL / cross-volume copy)
+*:Zone.Identifier
+
+# Runtime article storage
+data/
+
 ### Python template
 # Byte-compiled / optimized / DLL files
 __pycache__/

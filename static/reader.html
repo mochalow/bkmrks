@@ -22,7 +22,7 @@
 <div id="app" v-cloak>
 
     <header class="reader-toolbar">
-        <a class="toolbar-back" href="/">← В библиотеку</a>
+        <a class="back-link" href="/">← В библиотеку</a>
 
         <!-- Действия появляются только когда статья загружена -->
         <div class="toolbar-actions" v-if="article">
@@ -35,7 +35,7 @@
 
     <main class="reader">
         <p class="reader-status" v-if="status">{{ status }}</p>
-        <a class="reader-back-link" href="/" v-if="showBackLink">← В библиотеку</a>
+        <a class="back-link reader-back-link" href="/" v-if="showBackLink">← В библиотеку</a>
 
         <article v-if="article">
             <p class="reader-meta">
@@ -62,7 +62,7 @@
                            aria-label="Имя нового тега" @keydown.esc="closeTagForm">
                 </form>
             </div>
-            
+
             <div class="reader-content">
                 <p v-for="(para, i) in paragraphs" :key="i">{{ para }}</p>
             </div>
