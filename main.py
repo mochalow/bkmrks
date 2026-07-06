@@ -133,7 +133,7 @@ def list_articles(q: str | None = None, tag: str | None = None) -> list[Article]
 def read_article(article_id: str) -> Article:
     data = storage.load(article_id)
     if data is None:
-        raise HTTPException(status_code=404, detail="Article not found")
+        raise HTTPException(status_code=404, detail="Статья не найдена")
     return Article(**data)
 
 
@@ -141,7 +141,7 @@ def read_article(article_id: str) -> Article:
                responses={204: {"description": "Статья удалена"}, 404: {"description": "Статья не найдена"}})
 def delete_article(article_id: str) -> Response:
     if not storage.delete(article_id):
-        raise HTTPException(status_code=404, detail="Article not found")
+        raise HTTPException(status_code=404, detail="Статья не найдена")
     return Response(status_code=204)
 
 
@@ -150,7 +150,7 @@ def delete_article(article_id: str) -> Response:
 def add_tag(article_id: str, payload: TagIn) -> Article:
     data = storage.load(article_id)
     if data is None:
-        raise HTTPException(status_code=404, detail="Article not found")
+        raise HTTPException(status_code=404, detail="Статья не найдена")
 
     tag = payload.tag.strip().lower()
     if not tag:
@@ -168,7 +168,7 @@ def add_tag(article_id: str, payload: TagIn) -> Article:
 def remove_tag(article_id: str, tag: str) -> Article:
     data = storage.load(article_id)
     if data is None:
-        raise HTTPException(status_code=404, detail="Article not found")
+        raise HTTPException(status_code=404, detail="Статья не найдена")
 
     # Если тега нет, просто возвращаем статью без изменений
     search = tag.strip().lower()
