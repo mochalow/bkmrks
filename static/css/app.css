@@ -307,7 +307,6 @@ input::placeholder {
     text-decoration: none;
 }
 
-/* display управляется library.js, поэтому не задан */
 .cards-status {
     margin: 6px 0 0;
     padding: 16px 24px;
@@ -391,8 +390,6 @@ input::placeholder {
     justify-content: space-between;
     gap: 16px;
     padding: 18px 32px;
-    background: var(--card);
-    border-bottom: 1px solid var(--line);
 }
 
 .toolbar-back,

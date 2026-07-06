@@ -4,7 +4,7 @@
  * Разметку делает Vue из шаблона в reader.html.
  */
 
-import {createApp, ref, computed, nextTick, onMounted} from "vue";
+import {createApp, ref, computed, nextTick, onMounted, onUnmounted} from "vue";
 import {addTag, deleteArticle, getArticle, removeTag} from "/js/api.js";
 
 // Забираем id статьи из адреса (?id=...).
@@ -24,7 +24,27 @@ createApp({
 
         // Ссылки на узлы для управления фокусом
         const tagInput = ref(null);
+        const tagForm = ref(null);
         const addTagButton = ref(null);
+
+        let clickOutsideListener = null;
+
+        function enableClickOutside() {
+            disableClickOutside();
+            clickOutsideListener = (event) => {
+                const form = tagForm.value;
+                if (form && !form.contains(event.target)) {
+                    closeTagForm();
+                }
+            };
+            document.addEventListener("mousedown", clickOutsideListener);
+        }
+
+        function disableClickOutside() {
+            if (!clickOutsideListener) return;
+            document.removeEventListener("mousedown", clickOutsideListener);
+            clickOutsideListener = null;
+        }
 
         const paragraphs = computed(() => {
             const content = (article.value && article.value.content) || "";
@@ -76,9 +96,12 @@ createApp({
             tagFormOpen.value = true;
             await nextTick();
             tagInput.value.focus();
+            // После клика по «+ тег», иначе тот же клик сразу закроет форму
+            setTimeout(enableClickOutside, 0);
         }
 
         async function closeTagForm() {
+            disableClickOutside();
             newTag.value = "";
             tagFormOpen.value = false;
             await nextTick();
@@ -119,11 +142,12 @@ createApp({
         }
 
         onMounted(load);
+        onUnmounted(disableClickOutside);
 
         return {
             article, status, showBackLink, deleting,
             tagFormOpen, newTag, addingTag, removingTag,
-            tagInput, addTagButton,
+            tagInput, tagForm, addTagButton,
             paragraphs, domainOf, dateLong,
             removeArticle, openTagForm, closeTagForm, submitTag, dropTag,
         };

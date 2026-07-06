@@ -56,7 +56,7 @@
                 <button class="tag-add" type="button" ref="addTagButton"
                         v-if="!tagFormOpen" @click="openTagForm">+ тег
                 </button>
-                <form class="tag-form" v-else @submit.prevent="submitTag">
+                <form class="tag-form" v-else ref="tagForm" @submit.prevent="submitTag">
                     <input class="tag-input" type="text" ref="tagInput" v-model="newTag"
                            :disabled="addingTag" placeholder="имя тега"
                            aria-label="Имя нового тега" @keydown.esc="closeTagForm">

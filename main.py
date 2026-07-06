@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException, Response, APIRouter
 from fastapi.staticfiles import StaticFiles
@@ -60,7 +60,7 @@ router = APIRouter()
              responses={422: {"description": "Не удалось скачать или извлечь текст страницы"}})
 def create_article(payload: ArticleIn) -> Article:
     article_id = str(uuid.uuid4())
-    saved_at = datetime.now().replace(microsecond=0)
+    saved_at = datetime.now(timezone.utc).replace(microsecond=0)
 
     # Скачиваем страницу и очищаем её от мусора
     try:
@@ -78,16 +78,7 @@ def create_article(payload: ArticleIn) -> Article:
         tags=[],
     )
 
-    # Готовим словарь для сохранения в JSON
-    save_data = {
-        "id": article.id,
-        "url": str(article.url),
-        "saved_at": article.saved_at.isoformat(),
-        "title": article.title,
-        "content": article.content,
-        "tags": article.tags,
-    }
-    storage.save(save_data)
+    storage.save(article.model_dump(mode="json"))
 
     return article
 
