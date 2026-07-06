@@ -8,7 +8,7 @@
     <script type="importmap">
         {
           "imports": {
-            "vue": "https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.esm-browser.js"
+            "vue": "https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.esm-browser.prod.js"
           }
         }
     </script>
@@ -22,7 +22,7 @@
 <div id="app" v-cloak>
 
     <header class="reader-toolbar">
-        <a class="back-link" href="/">← В библиотеку</a>
+        <a class="back-link" href="/" aria-label="Вернуться в библиотеку">← В библиотеку</a>
 
         <!-- Действия появляются только когда статья загружена -->
         <div class="toolbar-actions" v-if="article">
@@ -35,7 +35,8 @@
 
     <main class="reader">
         <p class="reader-status" v-if="status">{{ status }}</p>
-        <a class="back-link reader-back-link" href="/" v-if="showBackLink">← В библиотеку</a>
+        <a class="back-link reader-back-link" href="/" v-if="showBackLink"
+           aria-label="Вернуться в библиотеку">← В библиотеку</a>
 
         <article v-if="article">
             <p class="reader-meta">

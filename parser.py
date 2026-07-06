@@ -10,9 +10,6 @@ def parse(url: str) -> dict:
         raise ValueError(f"Не удалось извлечь текст статьи: {url}")
 
     metadata = trafilatura.extract_metadata(downloaded)
-    if metadata:
-        title = metadata.title
-    else:
-        title = None
+    title = metadata.title if metadata else None
 
     return {"title": title, "content": content}

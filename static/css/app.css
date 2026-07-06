@@ -45,9 +45,13 @@
     display: none;
 }
 
-/* Чтобы  width и height включали в себя padding и border */
+/* Чтобы width и height включали в себя padding и border */
 *, *::before, *::after {
     box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
 }
 
 html, body {
@@ -123,6 +127,8 @@ h1, h2, h3 {
     background: var(--card);
     border: 1.5px solid var(--line-strong);
     border-radius: var(--r-control);
+    cursor: pointer;
+    transition: border-color 0.15s ease;
 }
 
 .btn-secondary:hover {
@@ -308,6 +314,7 @@ input::placeholder {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    transition: background 0.15s ease, color 0.15s ease;
 }
 
 .chip.is-active {
@@ -339,6 +346,16 @@ input::placeholder {
     display: block;
     color: inherit;
     text-decoration: none;
+    border-radius: var(--r-card);
+}
+
+.card-link:focus-visible {
+    outline: none;
+}
+
+.card-link:focus-visible .card {
+    border-color: var(--amber);
+    box-shadow: 0 0 0 2px var(--amber-light);
 }
 
 .cards-status {
@@ -594,6 +611,18 @@ input::placeholder {
 }
 
 /* --- Адаптив --- */
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    .card,
+    .chip,
+    .btn-secondary {
+        transition: none;
+    }
+}
 
 @media (max-width: 640px) {
     .page {

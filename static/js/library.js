@@ -50,7 +50,8 @@ createApp({
                 const result = await listArticles({q: q.value, tag: activeTag.value});
                 if (requestId !== lastRequestId) return;   // Фильтры уже сменились
                 articles.value = result;
-                status.value = result.length ? "" : q.value || activeTag.value ? "Ничего не найдено" : "Библиотека пуста";
+                const filtered = q.value || activeTag.value;
+                status.value = result.length ? "" : filtered ? "Ничего не найдено" : "Библиотека пуста";
             } catch (err) {
                 if (requestId !== lastRequestId) return;
                 articles.value = [];

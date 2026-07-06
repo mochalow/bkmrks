@@ -163,7 +163,7 @@ def remove_tag(article_id: str, tag: str) -> Article:
 
 
 @router.get("/health", summary="Проверка состояния сервиса", tags=["service"])
-def health():
+def health() -> dict[str, str]:
     return {"status": "ok"}
 
 

@@ -7,7 +7,13 @@ export function domainOf(url) {
 }
 
 export function excerptOf(content) {
-    return (content || "").slice(0, PREVIEW_LIMIT);
+    const text = (content || "").trim();
+    if (text.length <= PREVIEW_LIMIT) return text;
+
+    const cut = text.slice(0, PREVIEW_LIMIT);
+    const lastSpace = cut.lastIndexOf(" ");
+    const trimmed = lastSpace > PREVIEW_LIMIT * 0.6 ? cut.slice(0, lastSpace) : cut;
+    return trimmed + "...";
 }
 
 export function dateShort(iso) {
