@@ -1,14 +1,28 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>bkmrks</title>
+
+    <script type="importmap">
+        {
+          "imports": {
+            "vue": "https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.esm-browser.js"
+          }
+        }
+    </script>
+
     <link rel="stylesheet" href="/css/app.css">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <script type="module" src="/js/library.js"></script>
 </head>
+
 <body>
-<div class="page">
+
+<!-- Точка монтирования Vue -->
+<div id="app" class="page" v-cloak>
 
     <header class="topbar">
         <a class="brand" href="/">
@@ -18,44 +32,58 @@
             <span class="brand-name">bkmrks</span>
         </a>
 
-        <form class="save-form">
-            <input class="save-input" type="url" placeholder="Вставьте ссылку на статью…" aria-label="Адрес статьи">
-            <button class="btn btn-primary" type="submit">Сохранить</button>
+        <form class="save-form" @submit.prevent="save">
+            <input class="save-input" type="url" v-model="newUrl" placeholder="Вставьте ссылку на статью..."
+                   aria-label="Адрес статьи" required>
+            <button class="btn btn-primary" type="submit" :disabled="saving">
+                {{ saving ? "Сохранение" : "Сохранить" }}
+            </button>
         </form>
     </header>
+
+    <p class="save-error" v-if="saveError" role="alert">{{ saveError }}</p>
 
     <main>
         <div class="filters">
             <div class="search">
                 <span class="search-icon" aria-hidden="true">🔍</span>
-                <input class="search-input" type="search" placeholder="Поиск по словам" aria-label="Поиск по словам">
+                <input class="search-input" type="search" v-model="q" placeholder="Поиск"
+                       aria-label="Поиск">
             </div>
             <div class="chips">
-                <button class="chip is-active" type="button">все</button>
-                <button class="chip" type="button">python</button>
-                <button class="chip" type="button">docker</button>
-                <button class="chip" type="button">капуста кимчи</button>
+                <button class="chip" type="button" :class="{ 'is-active': activeTag === '' }"
+                        @click="selectTag('')">все
+                </button>
+                <button v-for="tag in allTags" :key="tag" class="chip" type="button"
+                        :class="{ 'is-active': activeTag === tag }" @click="selectTag(tag)">{{ tag }}
+                </button>
             </div>
         </div>
 
-        <section class="cards" id="cards"></section>
-        <p class="cards-status" id="cards-status">Библиотека загружается...</p>
-    </main>
+        <section class="cards">
+            <a v-for="article in articles" :key="article.id" class="card-link" :href="readerHref(article.id)">
+                <article class="card">
+                    <div class="card-head">
+                        <h2 class="card-title">{{ article.title || "Без заголовка" }}</h2>
+                        <time class="card-date" :datetime="article.saved_at">
+                            {{ dateShort(article.saved_at) }}
+                        </time>
+                    </div>
+                    <div class="card-domain">{{ domainOf(article.url) }}</div>
+                    <p class="card-excerpt" v-if="article.content">
+                        {{ excerptOf(article.content) }}
+                    </p>
+                    <div class="card-tags" v-if="article.tags.length">
+                        <span class="tag" v-for="tag in article.tags" :key="tag">{{ tag }}</span>
+                    </div>
+                </article>
+            </a>
+        </section>
 
+        <p class="cards-status" v-if="status">{{ status }}</p>
+    </main>
 </div>
 
-<template id="card-template">
-    <article class="card">
-        <div class="card-head">
-            <h2 class="card-title"></h2>
-            <time class="card-date"></time>
-        </div>
-        <div class="card-domain"></div>
-        <p class="card-excerpt"></p>
-        <div class="card-tags">
-            <span class="tag"></span>
-        </div>
-    </article>
-</template>
 </body>
+
 </html>

@@ -8,28 +8,31 @@
 
 :root {
     /* Палитра */
-    --paper: #EDE9E1;   /* Фон приложения, "Тёплая бумага" */
-    --card:  #FBFAF6;   /* Фон карточек и панелей, "Белый" */
-    --line:  #E3DED3;   /* Границы и разделители, "Серый"*/
-    --ink:   #211F1B;   /* Основной текст, "Чернила" */
-    --muted: #6C665C;   /* Второстепенный текст, "Обесцвеченные чернила" */
-    --amber: #D6A85C;   /* Акцент: кнопки, знак, ссылки, "Янтарь" */
-    --sage:  #7FA98C;   /* Второй акцент: теги, статусы, "Шалфей" */
+    --paper: #EDE9E1; /* Фон приложения, "Тёплая бумага" */
+    --card: #FBFAF6; /* Фон карточек и панелей, "Белый" */
+    --line: #E3DED3; /* Границы и разделители, "Серый"*/
+    --ink: #211F1B; /* Основной текст, "Чернила" */
+    --muted: #6C665C; /* Второстепенный текст, "Обесцвеченные чернила" */
+    --amber: #D6A85C; /* Акцент: кнопки, знак, ссылки, "Янтарь" */
+    --sage: #7FA98C; /* Второй акцент: теги, статусы, "Шалфей" */
 
     /* Оттенки из палитры */
-    --ink-soft:    #4E4A42;  /* Выдержки статей в карточках */
-    --muted-2:     #8A8478;  /* Метаданные: домен источника */
-    --muted-3:     #A39C8E;  /* Даты и плейсхолдеры*/
-    --line-strong: #DCD7CC;  /* Границы полей ввода */
-    --amber-hover: #CB9A47;  /* Главная кнопка под курсором */
-    --sage-text:   #5E8770;  /* Текст тегов */
-    --sage-tint:   #E6EFE8;  /* Фон тегов */
-    --amber-light: #E7C48A;  /* Выделение текста, знак на тёмном фоне */
+    --ink-soft: #4E4A42; /* Выдержки статей в карточках */
+    --muted-2: #8A8478; /* Метаданные: домен источника */
+    --muted-3: #A39C8E; /* Даты и плейсхолдеры*/
+    --line-strong: #DCD7CC; /* Границы полей ввода */
+    --amber-hover: #CB9A47; /* Главная кнопка под курсором */
+    --sage-text: #5E8770; /* Текст тегов */
+    --sage-tint: #E6EFE8; /* Фон тегов */
+    --amber-light: #E7C48A; /* Выделение текста, знак на тёмном фоне */
+    --danger: #B85A5A; /* Деструктивные действия */
+    --danger-hover: #A84E4E; /* Кнопка удаления под курсором */
+    --danger-tint: #F5E8E8; /* Фон сообщений об ошибке */
 
     /* Радиусы */
-    --r-chip: 10px;      /* Чипы тегов */
-    --r-control: 16px;   /* Кнопки и поля ввода */
-    --r-card: 24px;      /* Карточки */
+    --r-chip: 10px; /* Чипы тегов */
+    --r-control: 16px; /* Кнопки и поля ввода */
+    --r-card: 24px; /* Карточки */
 
     /* Шрифты */
     --font-ui: 'Golos Text', system-ui, sans-serif;
@@ -37,6 +40,10 @@
 }
 
 /* --- Базовые стили --- */
+
+[v-cloak] {
+    display: none;
+}
 
 /* Чтобы  width и height включали в себя padding и border */
 *, *::before, *::after {
@@ -81,15 +88,15 @@ h1, h2, h3 {
 }
 
 /* --- Библиотека (index.html) --- */
- 
+
 .page {
     max-width: 1040px;
     margin: 0 auto;
     padding: 28px 32px 48px;
 }
- 
+
 /* Шапка: знак, имя, поле сохранения */
- 
+
 .topbar {
     display: flex;
     align-items: center;
@@ -98,7 +105,7 @@ h1, h2, h3 {
     flex-wrap: wrap;
     margin-bottom: 26px;
 }
- 
+
 .brand {
     display: flex;
     align-items: center;
@@ -106,49 +113,58 @@ h1, h2, h3 {
     color: var(--ink);
     text-decoration: none;
 }
- 
+
 .brand-mark {
     fill: var(--amber);
 }
- 
+
 .brand-name {
     font-size: 22px;
     font-weight: 600;
     letter-spacing: -0.03em;
 }
- 
+
 .save-form {
     display: flex;
     align-items: center;
     gap: 10px;
     flex: 1;
-    min-width: 280px;    /* Чтобы форма не стала слишком узкой */
+    min-width: 280px; /* Чтобы форма не стала слишком узкой */
     max-width: 440px;
     padding: 4px 4px 4px 16px;
     background: var(--card);
     border: 1.5px solid var(--line-strong);
     border-radius: var(--r-control);
 }
- 
+
 /* Фокус составного поля показывает контейнер, а не внутреннюю форму ввода */
 .save-form:focus-within {
     border-color: var(--amber);
 }
- 
+
 .save-input {
     flex: 1;
-    min-width: 0;        /* Иначе flex не даст полю сжаться при переносе */
+    min-width: 0; /* Иначе flex не даст полю сжаться при переносе */
     font-size: 14.5px;
     border: none;
     background: transparent;
 }
- 
+
 .save-input:focus {
-    outline: none;       /* Фокус уже показан рамкой контейнера */
+    outline: none; /* Фокус уже показан рамкой контейнера */
 }
- 
+
+.save-error {
+    margin: -14px 0 18px;
+    padding: 10px 14px;
+    font-size: 14px;
+    color: var(--danger);
+    background: var(--danger-tint);
+    border-radius: var(--r-chip);
+}
+
 /* --- Кнопки --- */
- 
+
 .btn {
     padding: 10px 20px;
     font-size: 14px;
@@ -157,23 +173,60 @@ h1, h2, h3 {
     border-radius: var(--r-control);
     cursor: pointer;
 }
- 
+
 .btn-primary {
     background: var(--amber);
     color: var(--ink);
 }
- 
+
 .btn-primary:hover {
     background: var(--amber-hover);
 }
- 
+
+.btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+    background: var(--card);
+    border: 1.5px solid var(--line-strong);
+    border-radius: var(--r-control);
+}
+
+.btn-secondary:hover {
+    border-color: var(--amber);
+}
+
+.btn-danger {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--card);
+    background: var(--danger);
+    border: none;
+    border-radius: var(--r-control);
+    cursor: pointer;
+}
+
+.btn-danger:hover {
+    background: var(--danger-hover);
+}
+
 /* Вложенный радиус = внешний - отступ контейнера */
 .save-form .btn {
     border-radius: calc(var(--r-control) - 4px);
 }
- 
+
 /* --- Фильтры: поиск и чипы тегов --- */
- 
+
 .filters {
     display: flex;
     align-items: center;
@@ -181,7 +234,7 @@ h1, h2, h3 {
     flex-wrap: wrap;
     margin-bottom: 22px;
 }
- 
+
 .search {
     display: flex;
     align-items: center;
@@ -192,15 +245,15 @@ h1, h2, h3 {
     border: 1.5px solid var(--line-strong);
     border-radius: var(--r-control);
 }
- 
+
 .search:focus-within {
     border-color: var(--amber);
 }
- 
+
 .search-icon {
     font-size: 13.5px;
 }
- 
+
 .search-input {
     flex: 1;
     min-width: 0;
@@ -208,21 +261,21 @@ h1, h2, h3 {
     border: none;
     background: transparent;
 }
- 
+
 .search-input:focus {
     outline: none;
 }
- 
+
 input::placeholder {
     color: var(--muted-3);
 }
- 
+
 .chips {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
 }
- 
+
 .chip {
     padding: 7px 13px;
     font-size: 13px;
@@ -233,21 +286,27 @@ input::placeholder {
     border-radius: var(--r-chip);
     cursor: pointer;
 }
- 
+
 .chip.is-active {
     font-weight: 600;
     color: var(--ink);
     background: var(--amber);
 }
- 
+
 /* --- Карточки статей --- */
- 
+
 .cards {
     display: flex;
     flex-direction: column;
     gap: 14px;
 }
- 
+
+.card-link {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+}
+
 /* display управляется library.js, поэтому не задан */
 .cards-status {
     margin: 6px 0 0;
@@ -263,37 +322,37 @@ input::placeholder {
     border-radius: var(--r-card);
     transition: border-color 0.15s ease;
 }
- 
+
 .card:hover {
     border-color: var(--amber);
 }
- 
+
 .card-head {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
     gap: 16px;
 }
- 
+
 .card-title {
     margin: 0;
     font-size: 21px;
     line-height: 1.25;
     letter-spacing: -0.01em;
 }
- 
+
 .card-date {
     font-size: 12.5px;
     color: var(--muted-3);
     white-space: nowrap;
 }
- 
+
 .card-domain {
     margin-top: 6px;
     font-size: 13px;
     color: var(--muted-2);
 }
- 
+
 .card-excerpt {
     margin: 12px 0 0;
     max-width: 74ch;
@@ -307,14 +366,14 @@ input::placeholder {
     line-clamp: 2;
     overflow: hidden;
 }
- 
+
 .card-tags {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
     margin-top: 16px;
 }
- 
+
 .tag {
     padding: 5px 11px;
     font-size: 12.5px;
@@ -322,4 +381,155 @@ input::placeholder {
     color: var(--sage-text);
     background: var(--sage-tint);
     border-radius: var(--r-chip);
+}
+
+/* --- Читалка --- */
+
+.reader-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 32px;
+    background: var(--card);
+    border-bottom: 1px solid var(--line);
+}
+
+.toolbar-back,
+.reader-back-link {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    text-decoration: none;
+}
+
+.toolbar-back:hover,
+.reader-back-link:hover {
+    color: var(--ink);
+}
+
+.toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.reader {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 36px 32px 72px;
+}
+
+.reader-status {
+    margin: 0 0 16px;
+    font-size: 15px;
+    color: var(--muted);
+}
+
+.reader-back-link {
+    display: inline-block;
+    margin-bottom: 24px;
+}
+
+.reader-meta {
+    margin: 0 0 14px;
+    font-size: 13.5px;
+    color: var(--muted-2);
+}
+
+.reader-title {
+    margin: 0 0 22px;
+    font-size: 34px;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+}
+
+.reader-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 32px;
+}
+
+.reader-tags .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 5px 4px 5px 11px;
+}
+
+.tag-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    font-size: 16px;
+    line-height: 1;
+    color: var(--sage-text);
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.tag-remove:hover {
+    color: var(--danger);
+    background: var(--danger-tint);
+}
+
+.tag-remove:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.tag-add {
+    padding: 5px 11px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--muted-2);
+    background: transparent;
+    border: 1.5px dashed var(--line-strong);
+    border-radius: var(--r-chip);
+    cursor: pointer;
+}
+
+.tag-add:hover {
+    color: var(--sage-text);
+    border-color: var(--sage);
+}
+
+.tag-form {
+    display: inline-flex;
+}
+
+.tag-input {
+    min-width: 128px;
+    padding: 5px 11px;
+    font-size: 12.5px;
+    background: var(--card);
+    border: 1.5px solid var(--line-strong);
+    border-radius: var(--r-chip);
+}
+
+.tag-input:focus {
+    border-color: var(--amber);
+    outline: none;
+}
+
+.reader-content {
+    font-family: var(--font-serif);
+    font-size: 18px;
+    line-height: 1.72;
+    color: var(--ink);
+}
+
+.reader-content p {
+    margin: 0 0 1.15em;
+}
+
+.reader-content p:last-child {
+    margin-bottom: 0;
 }

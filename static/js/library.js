@@ -1,105 +1,135 @@
 /*
  * Поведение страницы библиотеки.
  *
- * Загружает список статей через api.js и отрисовывает карточки.
- * Разметка через HTML шаблон в index.html. Скрипт клонирует его и
- * заполняет поля через textContent.
+ * Разметку делает Vue из шаблона в index.html.
+ * URL - источник правды о фильтрах (изменение пишется в адрес,
+ * состояние читается оттуда).
  */
 
-import {listArticles} from "/js/api.js";
+import {createApp, ref, watch, onMounted} from "vue";
+import {createArticle, listArticles} from "/js/api.js";
 
-// Элементы страницы
-const cardsContainer = document.getElementById("cards");
-const cardTemplate = document.getElementById("card-template");
-const statusLine = document.getElementById("cards-status");
-
-// Количество символов содержания статьи для выдержки.
-// Визуальную обрезку до двух строк делает CSS
+// Количество символов статьи для выдержки.
+// Обрезку до двух строк делает CSS
 const PREVIEW_LIMIT = 300;
 
-/**
- * Собирает DOM-узел карточки из шаблона.
- * Данные попадают в разметку через textContent.
- * @param {Object} article - статья в формате API
- * @returns {HTMLElement} готовый узел <article class="card">
- */
-function renderCard(article) {
-    const card = cardTemplate.content.firstElementChild.cloneNode(true);
+// Пауза после последнего нажатия, прежде чем уйдёт запрос поиска
+const DEBOUNCE_MS = 300;
 
-    // Если парсер не нашёл заголовок, то title = null
-    card.querySelector(".card-title").textContent = article.title || "Без заголовка";
+createApp({
+    setup() {
+        const articles = ref([]);
+        const allTags = ref([]);
+        const q = ref("");
+        const activeTag = ref("");
+        const status = ref("Библиотека загружается...");
+        const newUrl = ref("");
+        const saving = ref(false);
+        const saveError = ref("");
 
-    const date = card.querySelector(".card-date");
-    date.dateTime = article.saved_at;
-    date.textContent = new Date(article.saved_at).toLocaleDateString("ru", {day: "numeric", month: "short"});
+        // Фильтры из адреса
+        const params = new URLSearchParams(location.search);
+        q.value = params.get("q") || "";
+        activeTag.value = params.get("tag") || "";
 
-    card.querySelector(".card-domain").textContent = new URL(article.url).hostname;
+        function syncUrl() {
+            const next = new URLSearchParams();
+            if (q.value) next.set("q", q.value);
+            if (activeTag.value) next.set("tag", activeTag.value);
+            const query = next.toString();
+            history.replaceState(null, "", query ? "?" + query : location.pathname);
+        }
 
-    const excerpt = card.querySelector(".card-excerpt");
-    if (article.content) {
-        excerpt.textContent = article.content.slice(0, PREVIEW_LIMIT);
-    } else {
-        excerpt.remove();
+        // Поздний ответ на устаревшие фильтры отбрасываем
+        let lastRequestId = 0;
+
+        async function refreshList() {
+            const requestId = ++lastRequestId;
+            try {
+                const result = await listArticles({q: q.value, tag: activeTag.value});
+                if (requestId !== lastRequestId) return;   // Фильтры уже сменились
+                articles.value = result;
+                status.value = result.length ? "" : q.value || activeTag.value ? "Ничего не найдено" : "Библиотека пуста";
+            } catch (err) {
+                if (requestId !== lastRequestId) return;
+                articles.value = [];
+                status.value = err.message;
+            }
+        }
+
+        // Новое состояние фильтров
+        function applyFilters() {
+            syncUrl();
+            refreshList();
+        }
+
+        function selectTag(tag) {
+            activeTag.value = tag;
+            applyFilters();
+        }
+
+        // Поиск. q меняется на каждый ввод, запрос
+        // уходит после паузы.
+        let debounceTimer = null;
+        watch(q, () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(applyFilters, DEBOUNCE_MS);
+        });
+
+        // Ряд чипов строится из тегов всей библиотеки
+        async function loadChips() {
+            const full = await listArticles();
+            const set = new Set();
+            for (const a of full) {
+                for (const t of a.tags) set.add(t);
+            }
+
+            const tags = Array.from(set).sort((a, b) => a.localeCompare(b, "ru"));
+            // Тег из старой ссылки мог исчезнуть из библиотеки. Показываем его
+            // чип всё равно, иначе активный фильтр стал бы невидимым.
+            if (activeTag.value && !tags.includes(activeTag.value)) {
+                tags.push(activeTag.value);
+            }
+            allTags.value = tags;
+        }
+
+        // Сохранение статьи
+        async function save() {
+            const url = newUrl.value.trim();
+            if (!url) return;
+            saveError.value = "";
+            saving.value = true;
+            try {
+                await createArticle(url);
+                newUrl.value = "";
+                await loadChips();
+                await refreshList();
+            } catch (err) {
+                saveError.value = err.message;
+            } finally {
+                saving.value = false;
+            }
+        }
+        
+        const domainOf = (url) => new URL(url).hostname;
+        const excerptOf = (content) => (content || "").slice(0, PREVIEW_LIMIT);
+        const dateShort = (iso) => new Date(iso).toLocaleDateString("ru", {day: "numeric", month: "short"});
+        const readerHref = (id) => "/reader.html?id=" + encodeURIComponent(id);
+
+        // Первая загрузка. Чипы, потом список по фильтрам
+        onMounted(async () => {
+            try {
+                await loadChips();
+            } catch (err) {
+                status.value = err.message;
+                return;
+            }
+            await refreshList();
+        });
+
+        return {
+            articles, allTags, q, activeTag, status, newUrl, saving, saveError,
+            save, selectTag, domainOf, excerptOf, dateShort, readerHref
+        };
     }
-
-    // В шаблоне лежит один пустой прототип тега.
-    // Удаляем его, потом клонируем и заполняем реальными тегами.
-    const tagsBox = card.querySelector(".card-tags");
-    const tagPrototype = tagsBox.querySelector(".tag");
-    tagPrototype.remove();
-
-    for (const name of article.tags) {
-        const tag = tagPrototype.cloneNode(true);
-        tag.textContent = name;
-        tagsBox.append(tag);
-    }
-    if (article.tags.length === 0) {
-        // Убирает пустой ряд тегов.
-        // Атрибут hidden не работает, т. к. перекрывается display: flex из CSS
-        tagsBox.remove();
-    }
-
-    return card;
-}
-
-/**
- * Ререндерит контейнер со списком статей.
- * @param {Object[]} articles - статьи, новые сверху
- */
-function renderList(articles) {
-    if (articles.length === 0) {
-        cardsContainer.replaceChildren();
-        showStatus("Библиотека пуста");
-        return;
-    }
-
-    hideStatus();
-    cardsContainer.replaceChildren(...articles.map(renderCard));
-}
-
-/**
- * Показывает строку состояния под списком.
- * @param {string} text
- */
-function showStatus(text) {
-    statusLine.textContent = text;
-    statusLine.hidden = false;
-}
-
-/** Прячет строку состояния. */
-function hideStatus() {
-    statusLine.hidden = true;
-}
-
-/** Загружает список с сервера и отрисовывает его. */
-async function loadArticles() {
-    try {
-        const articles = await listArticles();
-        renderList(articles);
-    } catch (err) {
-        cardsContainer.replaceChildren();
-        showStatus(err.message);
-    }
-}
-
-loadArticles();
+}).mount("#app");
