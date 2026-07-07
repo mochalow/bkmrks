@@ -9,12 +9,12 @@
 import json
 from pathlib import Path
 
-DATA_DIR = Path("data/articles")
+DATA_DIR = Path(__file__).resolve().parent / "data" / "articles"
 """Каталог, в котором лежат JSON-файлы статей.
 
 При первом сохранении создаётся автоматически (``parents=True``).
-В Docker том монтируется в этот путь, чтобы данные переживали
-пересборку контейнера.
+Путь абсолютный относительно расположения модуля, чтобы не зависеть от cwd.
+В Docker том монтируется в /app/data.
 """
 
 
