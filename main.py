@@ -83,7 +83,8 @@ class TagIn(BaseModel):
         min_length=1,
         description=(
             "Произвольная метка для группировки статей. "
-            "Пробелы по краям обрезаются, регистр приводится к нижнему."
+            "Пробелы по краям обрезаются, регистр приводится к нижнему. "
+            "Символ ``/`` запрещён."
         ),
         examples=["python", "news"],
     )
@@ -180,6 +181,14 @@ def _normalize(value: str | None) -> str:
     return (value or "").strip().lower()
 
 
+def _normalize_tag(value: str | None) -> str:
+    """Нормализует тег и отклоняет символ ``/`` (ломает DELETE-маршрут)."""
+    tag = _normalize(value)
+    if "/" in tag:
+        raise HTTPException(status_code=422, detail="Тег не может содержать символ /")
+    return tag
+
+
 def _matches_query(article: dict, query: str) -> bool:
     """Проверяет, встречается ли подстрока ``query`` в заголовке или тексте."""
     title = (article.get("title") or "").lower()
@@ -239,13 +248,13 @@ def list_articles(
     responses={404: {"description": "Статья с таким id не найдена в хранилище."}},
 )
 def read_article(
-        article_id: str = Path(
+        article_id: uuid.UUID = Path(
             description="UUID статьи из поля ``id``.",
             examples=["3f2a1b4c-5d6e-7f8a-9b0c-1d2e3f4a5b6c"],
         ),
 ) -> Article:
     """Загружает одну статью по UUID."""
-    data = storage.load(article_id)
+    data = storage.load(str(article_id))
     if data is None:
         raise HTTPException(status_code=404, detail="Статья не найдена")
     return Article(**data)
@@ -261,9 +270,9 @@ def read_article(
         404: {"description": "Статья с таким id не найдена."},
     },
 )
-def delete_article(article_id: str) -> Response:
+def delete_article(article_id: uuid.UUID) -> Response:
     """Безвозвратно удаляет JSON-файл статьи с диска."""
-    if not storage.delete(article_id):
+    if not storage.delete(str(article_id)):
         raise HTTPException(status_code=404, detail="Статья не найдена")
     return Response(status_code=204)
 
@@ -275,20 +284,25 @@ def delete_article(article_id: str) -> Response:
     response_description="Статья с обновлённым списком тегов.",
     responses={
         404: {"description": "Статья не найдена."},
-        422: {"description": "Тег пустой после нормализации (только пробелы)."},
+        422: {
+            "description": (
+                    "Тег пустой после нормализации (только пробелы) "
+                    "или содержит запрещённый символ ``/``."
+            ),
+        },
     },
 )
-def add_tag(article_id: str, payload: TagIn) -> Article:
+def add_tag(article_id: uuid.UUID, payload: TagIn) -> Article:
     """Добавляет тег, если его ещё нет у статьи.
 
     Повторный запрос с тем же тегом идемпотентен: список не меняется,
     но статья возвращается в актуальном виде.
     """
-    data = storage.load(article_id)
+    data = storage.load(str(article_id))
     if data is None:
         raise HTTPException(status_code=404, detail="Статья не найдена")
 
-    tag = _normalize(payload.tag)
+    tag = _normalize_tag(payload.tag)
     if not tag:
         raise HTTPException(status_code=422, detail="Тег не может быть пустым")
 
@@ -306,17 +320,17 @@ def add_tag(article_id: str, payload: TagIn) -> Article:
     response_description="Статья с обновлённым списком тегов.",
     responses={404: {"description": "Статья не найдена."}},
 )
-def remove_tag(article_id: str, tag: str) -> Article:
+def remove_tag(article_id: uuid.UUID, tag: str) -> Article:
     """Удаляет тег из статьи.
 
     Если тега нет, операция считается успешной - возвращается статья
     без изменений (идемпотентное поведение).
     """
-    data = storage.load(article_id)
+    data = storage.load(str(article_id))
     if data is None:
         raise HTTPException(status_code=404, detail="Статья не найдена")
 
-    needle = _normalize(tag)
+    needle = _normalize_tag(tag)
     if needle in data["tags"]:
         data["tags"].remove(needle)
         storage.save(data)

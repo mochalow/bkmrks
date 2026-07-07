@@ -37,11 +37,10 @@ def parse(url: str) -> dict:
     if downloaded is None:
         raise ValueError(f"Не удалось скачать страницу: {url}")
 
-    content = trafilatura.extract(downloaded, include_comments=False)
-    if content is None:
+    doc = trafilatura.bare_extraction(
+        downloaded, include_comments=False, with_metadata=True,
+    )
+    if doc is None or not doc.text:
         raise ValueError(f"Не удалось извлечь текст статьи: {url}")
 
-    metadata = trafilatura.extract_metadata(downloaded)
-    title = metadata.title if metadata else None
-
-    return {"title": title, "content": content}
+    return {"title": doc.title, "content": doc.text}

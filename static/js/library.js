@@ -21,9 +21,6 @@ import {dateShort, domainOf, excerptOf} from "/js/format.js";
 /** Задержка для поля поиска, мс. */
 const DEBOUNCE_MS = 300;
 
-/** Максимальная высота свёрнутого ряда тегов, px. */
-const CHIPS_COLLAPSED_MAX = 72;
-
 /**
  * Инициализирует и монтирует Vue-приложение библиотеки.
  *
@@ -54,6 +51,21 @@ createApp({
         const hiddenTagCount = ref(0);
         /** @type {HTMLElement|null} */
         const chipsEl = ref(null);
+        /** @type {number|null} */
+        let chipsCollapsedMax = null;
+
+        /**
+         * Читает ``max-height`` свёрнутого ряда чипов из CSS (единый источник правды).
+         * @param {HTMLElement} el - Контейнер ``.chips``.
+         * @returns {number}
+         */
+        function readChipsCollapsedMax(el) {
+            const hadCollapsed = el.classList.contains("is-collapsed");
+            if (!hadCollapsed) el.classList.add("is-collapsed");
+            const max = parseFloat(getComputedStyle(el).maxHeight);
+            if (!hadCollapsed) el.classList.remove("is-collapsed");
+            return max || 0;
+        }
 
         const params = new URLSearchParams(location.search);
         q.value = params.get("q") || "";
@@ -154,7 +166,11 @@ createApp({
                 return;
             }
 
-            const overflows = el.scrollHeight > CHIPS_COLLAPSED_MAX;
+            if (chipsCollapsedMax === null) {
+                chipsCollapsedMax = readChipsCollapsedMax(el);
+            }
+
+            const overflows = el.scrollHeight > chipsCollapsedMax;
             tagsOverflow.value = overflows;
             if (!overflows) {
                 tagsExpanded.value = false;
@@ -163,7 +179,7 @@ createApp({
             }
 
             hiddenTagCount.value = [...el.querySelectorAll(".chip")]
-                .filter((chip) => chip.offsetTop >= CHIPS_COLLAPSED_MAX)
+                .filter((chip) => chip.offsetTop >= chipsCollapsedMax)
                 .length;
         }
 
