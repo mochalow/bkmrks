@@ -1,0 +1,55 @@
+{
+  "plugins": ["plugins/markdown"],
+  "source": {
+    "include": [
+      "../static/js"
+    ],
+    "includePattern": ".+\\.js$"
+  },
+  "markdown": {
+    "hardwrap": false,
+    "idInHeadings": true
+  },
+  "opts": {
+    "encoding": "utf8",
+    "readme": "../README.md",
+    "destination": "_build/js",
+    "recurse": true,
+    "template": "node_modules/clean-jsdoc-theme",
+    "theme_opts": {
+      "title": "bkmrks",
+      "homepageTitle": "bkmrks — JavaScript",
+      "default_theme": "fallback-dark",
+      "favicon": "static/favicon.svg",
+      "static_dir": [
+        "../static"
+      ],
+      "sections": [
+        "Modules"
+      ],
+      "sort": false,
+      "menu": [
+        {
+          "title": "Sphinx (Python)",
+          "link": "../html/index.html"
+        },
+        {
+          "title": "GitHub",
+          "link": "https://github.com/mochalow/bkmrks",
+          "target": "_blank"
+        }
+      ],
+      "meta": [
+        {
+          "name": "description",
+          "content": "Клиентский JavaScript приложения bkmrks (api, format, library, reader)"
+        }
+      ],
+      "include_css": [
+        "./jsdoc-custom.css"
+      ],
+      "create_style": "a, .active a { color: #009688 !important; } .sidebar-title { font-weight: 600; }",
+      "footer": "© 2026 Ivan Mochalov · bkmrks"
+    }
+  }
+}

@@ -1,0 +1,9 @@
+/* Акценты в духе FastAPI из README */
+:root {
+    --accent: #009688;
+}
+
+[data-theme="light"] .navbar,
+.navbar {
+    border-bottom: 2px solid var(--accent);
+}

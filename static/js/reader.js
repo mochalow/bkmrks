@@ -1,18 +1,35 @@
-/*
- * Поведение страницы читалки.
+/**
+ * @fileoverview Логика страницы чтения одной статьи.
  *
- * Разметку делает Vue из шаблона в reader.html.
+ * Vue 3 на ``reader.html``. Идентификатор статьи берётся из
+ * query-параметра ``id``. Текст разбивается на абзацы для отображения
+ * в шаблоне. Теги можно добавлять и удалять без перезагрузки страницы.
+ *
+ * @module reader
  */
 
 import {createApp, ref, computed, nextTick, onMounted, onUnmounted} from "vue";
 import {addTag, deleteArticle, getArticle, removeTag} from "/js/api.js";
+
+/** @typedef {module:api~Article} Article */
 import {dateLong, domainOf} from "/js/format.js";
 
+/** UUID статьи из адресной строки (?id=...). */
 const articleId = new URLSearchParams(location.search).get("id");
 
+/**
+ * Инициализирует Vue-приложение читалки.
+ *
+ * Основные сценарии:
+ *
+ * - загрузка статьи при открытии страницы.
+ * - удаление статьи с подтверждением и редиректом в библиотеку.
+ * - inline-форма добавления тега с закрытием по клику вне формы.
+ * - удаление отдельного тега с индикацией на кнопке-крестике.
+ */
 createApp({
     setup() {
-        // Реактивное состояние страницы
+        /** @type {Article|null} */
         const article = ref(null);
         const status = ref("Статья загружается...");
         const showBackLink = ref(false);
@@ -20,15 +37,23 @@ createApp({
         const tagFormOpen = ref(false);
         const newTag = ref("");
         const addingTag = ref(false);
-        const removingTag = ref("");     // Имя тега, который сейчас удаляется
+        /** Имя тега, который сейчас удаляется. */
+        const removingTag = ref("");
 
-        // Ссылки на узлы для управления фокусом
+        /** @type {HTMLInputElement|null} */
         const tagInput = ref(null);
+        /** @type {HTMLElement|null} */
         const tagForm = ref(null);
+        /** @type {HTMLButtonElement|null} */
         const addTagButton = ref(null);
 
+        /** @type {function(MouseEvent): void|null} */
         let clickOutsideListener = null;
 
+        /**
+         * Регистрирует обработчик события на клики вне формы тега для её закрытия.
+         * @returns {void}
+         */
         function enableClickOutside() {
             disableClickOutside();
             clickOutsideListener = (event) => {
@@ -40,17 +65,26 @@ createApp({
             document.addEventListener("mousedown", clickOutsideListener);
         }
 
+        /**
+         * Снимает обработчик клика вне формы.
+         * @returns {void}
+         */
         function disableClickOutside() {
             if (!clickOutsideListener) return;
             document.removeEventListener("mousedown", clickOutsideListener);
             clickOutsideListener = null;
         }
 
+        /** Разбивает ``content`` статьи на непустые абзацы для ``v-for``. */
         const paragraphs = computed(() => {
             const content = (article.value && article.value.content) || "";
             return content.split("\n").map((s) => s.trim()).filter(Boolean);
         });
 
+        /**
+         * Загружает статью по ``articleId`` из URL.
+         * @returns {Promise<void>}
+         */
         async function load() {
             if (!articleId) {
                 status.value = "В адресе не хватает идентификатора статьи";
@@ -60,7 +94,7 @@ createApp({
             try {
                 const loaded = await getArticle(articleId);
                 article.value = loaded;
-                status.value = "";               // Прячем «Статья загружается...»
+                status.value = "";
                 document.title = "bkmrks — " + (loaded.title || "Без заголовка");
             } catch (err) {
                 status.value = err.message;
@@ -68,65 +102,86 @@ createApp({
             }
         }
 
-        // Удаление статьи
+        /**
+         * Удаляет текущую статью после подтверждения пользователя.
+         * @returns {Promise<void>}
+         */
         async function removeArticle() {
             if (!confirm("Удалить статью? Действие необратимо.")) return;
-            deleting.value = true;               // Защита от повторного клика
+            deleting.value = true;
             try {
                 await deleteArticle(articleId);
-                location.href = "/";             // Читать больше нечего - в библиотеку
+                location.href = "/";
             } catch (err) {
                 deleting.value = false;
                 status.value = err.message;
             }
         }
 
-        // Управление тегами
-        // Узел формы появляется только после перерисовки, поэтому фокус
-        // ставим после nextTick.
+        /**
+         * Открывает форму добавления тега и ставит фокус в поле ввода.
+         *
+         * Обработчик "клик снаружи" включается через ``setTimeout(0)``,
+         * чтобы тот же клик по кнопке «+ тег» не закрыл форму сразу.
+         * @returns {Promise<void>}
+         */
         async function openTagForm() {
             tagFormOpen.value = true;
             await nextTick();
             tagInput.value?.focus();
-            // После клика по «+ тег», иначе тот же клик сразу закроет форму
             setTimeout(enableClickOutside, 0);
         }
 
+        /**
+         * Закрывает форму тега и возвращает фокус на кнопку «+ тег».
+         * @returns {Promise<void>}
+         */
         async function closeTagForm() {
             disableClickOutside();
             newTag.value = "";
             tagFormOpen.value = false;
             await nextTick();
-            addTagButton.value?.focus(); // Вернуть фокус на «+ тег»
+            addTagButton.value?.focus();
         }
 
+        /**
+         * Отправляет новый тег на сервер.
+         *
+         * Пустой ввод трактуется как отмена (форма закрывается).
+         * @returns {Promise<void>}
+         */
         async function submitTag() {
             const name = newTag.value.trim();
             if (!name) {
-                closeTagForm(); // Пустой ввод - отмена
+                closeTagForm();
                 return;
             }
             status.value = "";
-            addingTag.value = true; // Защита от повторной отправки
+            addingTag.value = true;
             try {
                 const updated = await addTag(articleId, name);
-                article.value = updated; // Ряд тегов из ответа сервера
+                article.value = updated;
                 closeTagForm();
             } catch (err) {
                 await nextTick();
-                tagInput.value?.focus(); // Возвращаем к правке
+                tagInput.value?.focus();
                 status.value = err.message;
             } finally {
                 addingTag.value = false;
             }
         }
 
+        /**
+         * Удаляет тег у статьи. Обновляет локальное состояние из ответа API.
+         * @param {string} name - Имя тега для удаления.
+         * @returns {Promise<void>}
+         */
         async function dropTag(name) {
             status.value = "";
-            removingTag.value = name; // Крестик этого чипа выключается
+            removingTag.value = name;
             try {
                 const updated = await removeTag(articleId, name);
-                article.value = updated; // Чип уходит вместе с ответом
+                article.value = updated;
             } catch (err) {
                 status.value = err.message;
             } finally {

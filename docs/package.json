@@ -1,0 +1,13 @@
+{
+  "name": "bkmrks-docs",
+  "version": "0.1.0",
+  "description": "Dev-инструменты для документации bkmrks",
+  "private": true,
+  "devDependencies": {
+    "clean-jsdoc-theme": "^4.0.0",
+    "jsdoc": "^4.0.0"
+  },
+  "scripts": {
+    "docs:js": "jsdoc -c jsdoc.json"
+  }
+}

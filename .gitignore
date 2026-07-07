@@ -102,8 +102,9 @@ instance/
 # Scrapy stuff:
 .scrapy
 
-# Sphinx documentation
+# Sphinx / JSDoc documentation
 docs/_build/
+node_modules/
 
 # PyBuilder
 .pybuilder/

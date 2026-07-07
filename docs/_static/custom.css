@@ -1,0 +1,14 @@
+:root {
+    --bkmrks-accent: #009688;
+    --bkmrks-accent-content: #00796b;
+}
+
+html[data-theme="dark"] {
+    --bkmrks-accent: #4db6ac;
+    --bkmrks-accent-content: #80cbc4;
+}
+
+/* Подсветка inline-кода в тексте */
+p a.reference {
+    font-weight: 500;
+}

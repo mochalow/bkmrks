@@ -8,6 +8,7 @@
 
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![Vue.js](https://img.shields.io/badge/Vue.js-3-4FC08D?logo=vuedotjs&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
@@ -43,6 +44,8 @@
 ### В контейнере
 
 ```bash
+git clone https://github.com/mochalow/bkmrks
+cd bkmrks
 docker compose up --build
 ```
 
@@ -52,6 +55,8 @@ docker compose up --build
 ### Без контейнера
 
 ```bash
+git clone https://github.com/mochalow/bkmrks
+cd bkmrks
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -63,10 +68,50 @@ uvicorn main:app --reload
 
 ## Документация
 
-**Интерактивная документация API** генерируется `FastAPI` автоматически из кода.
+Проект документирован в трёх форматах: **OpenAPI** (HTTP API), **Sphinx** (Python) и **JSDoc** (клиентский JavaScript).
+
+### OpenAPI / Swagger (FastAPI)
+
+Интерактивная документация API генерируется автоматически.
 
 | Ресурс     | Адрес                                | Что это                                                           |
 |------------|--------------------------------------|-------------------------------------------------------------------|
 | Swagger UI | `http://localhost:8000/docs`         | Интерактивная документация. Ручки можно дёргать прямо из браузера |
 | ReDoc      | `http://localhost:8000/redoc`        | Альтернативное представление того же API                          |
 | OpenAPI    | `http://localhost:8000/openapi.json` | Машиночитаемое описание API                                       |
+
+### Sphinx (Python) и JSDoc (JavaScript)
+
+Статическая документация: Python-модули (`main`, `parser`, `storage`) и клиентский JavaScript (`api`, `format`,
+`library`, `reader` в `static/js/`).
+
+```bash
+# 1. Системные пакеты: Python, venv, Node.js, make, git
+sudo apt update
+sudo apt install -y python3 python3-venv python3-pip nodejs npm make git
+
+# 2. Клонирование
+git clone https://github.com/mochalow/bkmrks
+cd bkmrks
+
+# 3. Python-окружение: сначала зависимости проекта (нужны autodoc), потом Sphinx
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt        # Без этого import main упадёт при сборке
+pip install -r docs/requirements.txt   # Sphinx, тема Furo и MyST
+
+# 4. Node.js-зависимости (нужны для JSDoc)
+cd docs && npm install && cd ..
+
+# 5. Сборка
+make -C docs docs          # Всё: Sphinx + JSDoc
+make -C docs docs-py       # Только Sphinx (Python)
+make -C docs docs-js       # Только JSDoc (JavaScript)
+make -C docs docs-clean    # Удалить docs/_build/
+```
+
+| Формат             | Результат                     |
+|--------------------|-------------------------------|
+| Sphinx (Python)    | `docs/_build/html/index.html` |
+| JSDoc (JavaScript) | `docs/_build/js/index.html`   |
+

@@ -1,23 +1,53 @@
-/*
- * Модуль для доступа клиентов к API.
+/**
+ * @fileoverview Клиентский доступ к REST API приложения bkmrks.
  *
- * Единственное место, где фронтенд знает про HTTP. Response и статус-коды не выходят
- * за пределы модуля, наружу идёт Error с человекочитаемым текстом.
+ * Единственное место, где фронтенд знает про HTTP. Ответы ``fetch``,
+ * статус-коды и формат ошибок FastAPI не выходят за пределы модуля.
+ * Наружу передаётся только {@link Error} с человекочитаемым ``message``.
+ *
+ * Все пути начинаются с ``/api`` (префикс роутера в ``main.py``).
+ *
+ * @module api
  */
 
 /**
- * Делает запрос к API. Выполняет fetch и переводит любую неудачу
- * в Error с человекочитаемым message.
- * @param {string} path - путь запроса, начиная с /api
- * @param {RequestInit} [options] - параметры fetch
- * @returns {Promise<any>} тело ответа или null для 204
+ * Статья, как её возвращает сервер (модель Pydantic ``Article``).
+ *
+ * @typedef {Object} Article
+ * @property {string} id - UUID4 в строковом виде.
+ * @property {string} url - Исходный адрес сохранённой страницы.
+ * @property {string} saved_at - Момент сохранения в UTC (ISO 8601).
+ * @property {string|null} title - Заголовок из метаданных страницы.
+ * @property {string|null} content - Очищенный plain text с переносами ``\\n``.
+ * @property {string[]} tags - Теги в нижнем регистре, без дубликатов.
+ */
+
+/**
+ * Параметры фильтрации списка статей (query-string ``GET /api/articles``).
+ *
+ * @typedef {Object} ArticleFilters
+ * @property {string} [q] - Подстрока для поиска в заголовке и тексте.
+ * @property {string} [tag] - Вернуть только статьи с этим тегом.
+ */
+
+/**
+ * Выполняет запрос к API и разбирает ответ.
+ *
+ * Сетевые сбои оборачиваются в понятное сообщение. HTTP-ошибки
+ * переводятся через {@link extractDetail}. Успешный ответ ``204``
+ * возвращает ``null`` без попытки парсить JSON.
+ *
+ * @param {string} path - Путь запроса, начиная с ``/api``.
+ * @param {RequestInit} [options] - Параметры ``fetch`` (method, headers, body).
+ * @returns {Promise<Article|Article[]|null>} Тело ответа или ``null`` для 204.
+ * @throws {Error} Сеть недоступна или сервер вернул статус >= 400.
+ * @private
  */
 async function request(path, options = {}) {
     let response;
     try {
         response = await fetch(path, options);
     } catch (err) {
-        // Сеть упала. Причину сохраняем в cause
         throw new Error("Не удалось связаться с сервером. Проверьте, что приложение запущено.",
             {cause: err});
     }
@@ -26,7 +56,6 @@ async function request(path, options = {}) {
         throw new Error(await extractDetail(response));
     }
 
-    // Парсить нечего, т. к. 204 "No Content" приходит без тела
     if (response.status === 204) {
         return null;
     }
@@ -35,9 +64,14 @@ async function request(path, options = {}) {
 }
 
 /**
- * Достаёт человекочитаемый текст ошибки из ответа FastAPI.
- * @param {Response} response - ответ
- * @returns {Promise<string>} текст ошибки
+ * Извлекает человекочитаемый текст ошибки из тела ответа FastAPI.
+ *
+ * FastAPI для ошибок валидации возвращает ``detail`` как массив объектов
+ * с полем ``msg``. Для логических ошибок - строку в ``detail``.
+ *
+ * @param {Response} response - Ответ с ``ok === false``.
+ * @returns {Promise<string>} Текст для показа пользователю.
+ * @private
  */
 async function extractDetail(response) {
     const data = await response.json().catch(() => null);
@@ -54,11 +88,18 @@ async function extractDetail(response) {
 }
 
 /**
- * Запрашивает список статей, новые сверху.
- * @param {Object} [filters]
- * @param {string} [filters.q] - подстрока для поиска в заголовке и тексте
- * @param {string} [filters.tag] - вернуть только статьи с этим тегом
- * @returns {Promise<Object[]>} массив статей
+ * Запрашивает список статей. Сервер сортирует по дате (новые сверху).
+ *
+ * @param {ArticleFilters} [filters] - Опциональные фильтры поиска и тега.
+ * @returns {Promise<Article[]>} Массив статей (может быть пустым).
+ *
+ * @example
+ * // Все статьи
+ * const all = await listArticles();
+ *
+ * @example
+ * // Поиск + фильтр по тегу
+ * const filtered = await listArticles({ q: "python", tag: "news" });
  */
 export async function listArticles({q, tag} = {}) {
     const params = new URLSearchParams();
@@ -74,18 +115,22 @@ export async function listArticles({q, tag} = {}) {
 }
 
 /**
- * Запрашивает одну статью по id.
- * @param {string} id - id статьи
- * @returns {Promise<Object>} статья
+ * Загружает одну статью по идентификатору.
+ *
+ * @param {string} id - UUID статьи.
+ * @returns {Promise<Article>} Полная статья с текстом.
+ * @throws {Error} ``404`` - статья не найдена.
  */
 export async function getArticle(id) {
     return request("/api/articles/" + encodeURIComponent(id));
 }
 
 /**
- * Сохраняет статью.
- * @param {string} url - адрес страницы
- * @returns {Promise<Object>} созданная статья
+ * Сохраняет новую статью. Сервер скачивает URL и извлекает текст.
+ *
+ * @param {string} url - Адрес страницы для парсинга.
+ * @returns {Promise<Article>} Созданная статья (статус 201 на сервере).
+ * @throws {Error} ``422`` - не удалось скачать или распарсить страницу.
  */
 export async function createArticle(url) {
     return request("/api/articles", {
@@ -96,19 +141,27 @@ export async function createArticle(url) {
 }
 
 /**
- * Удаляет статью.
- * @param {string} id - id статьи
- * @returns {Promise<null>} ответ 204 "No Content" приходит без тела
+ * Безвозвратно удаляет статью с сервера.
+ *
+ * @param {string} id - UUID статьи.
+ * @returns {Promise<null>} Успех - ``null`` (ответ 204 без тела).
+ * @throws {Error} ``404`` - статья не найдена.
  */
 export async function deleteArticle(id) {
     return request("/api/articles/" + encodeURIComponent(id), {method: "DELETE"});
 }
 
 /**
- * Добавляет тег к статье. Сервер нормализует тег и не создаёт дубликатов.
- * @param {string} id - id статьи
- * @param {string} tag - тег для добавления
- * @returns {Promise<Object>} обновлённая статья
+ * Добавляет тег к статье.
+ *
+ * Сервер нормализует тег (удаление пробелов в начала и конце,
+ * перевод в нижний регистр) и не создаёт дубликатов.
+ * Повторный вызов с тем же тегом безопасен.
+ *
+ * @param {string} id - UUID статьи.
+ * @param {string} tag - Имя тега (регистр на клиенте не важен).
+ * @returns {Promise<Article>} Статья с обновлённым массивом ``tags``.
+ * @throws {Error} ``404`` - статья не найдена; ``422`` - пустой тег.
  */
 export async function addTag(id, tag) {
     return request("/api/articles/" + encodeURIComponent(id) + "/tags", {
@@ -119,10 +172,14 @@ export async function addTag(id, tag) {
 }
 
 /**
- * Удаляет тег у статьи. Если тега нет, статья вернётся без изменений.
- * @param {string} id - id статьи
- * @param {string} tag - тег для удаления
- * @returns {Promise<Object>} обновлённая статья
+ * Удаляет тег у статьи.
+ *
+ * Если тега нет, сервер возвращает статью без изменений (идемпотентно).
+ *
+ * @param {string} id - UUID статьи.
+ * @param {string} tag - Имя тега для удаления.
+ * @returns {Promise<Article>} Статья с актуальным списком тегов.
+ * @throws {Error} ``404`` - статья не найдена.
  */
 export async function removeTag(id, tag) {
     return request("/api/articles/" + encodeURIComponent(id) + "/tags/" + encodeURIComponent(tag), {method: "DELETE"});
