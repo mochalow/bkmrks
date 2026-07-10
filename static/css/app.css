@@ -303,7 +303,7 @@ h1, h2, h3 {
 }
 
 .brand {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 12px;
     color: var(--ink);
