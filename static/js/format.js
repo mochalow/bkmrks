@@ -4,6 +4,8 @@
  * Функции принимают данные из API
  * и возвращают строки для отображения в шаблонах Vue.
  *
+ * Используются в {@link module:library} и {@link module:reader}.
+ *
  * @module format
  */
 
@@ -13,16 +15,25 @@ const PREVIEW_LIMIT = 300;
 /**
  * Извлекает доменное имя из URL для отображения под заголовком статьи.
  *
+ * Вызывается прямо из шаблонов (карточки библиотеки, шапка читалки),
+ * поэтому не бросает исключений: на некорректном или нестандартном
+ * ``url`` из сохранённой записи возвращает сам ``url``, чтобы битые
+ * данные не роняли рендер всей карточки/страницы.
+ *
  * @param {string} url - Полный адрес страницы (как в поле {@link Article#url}).
- * @returns {string} Hostname, например ``example.com``.
- * @throws {TypeError} Если ``url`` не является валидным URL для конструктора {@link URL}.
+ * @returns {string} Hostname, например ``example.com``; исходный ``url``
+ *     (или пустая строка), если разобрать адрес не удалось.
  *
  * @example
  * domainOf("https://example.com/path/article");
  * // => "example.com"
  */
 export function domainOf(url) {
-    return new URL(url).hostname;
+    try {
+        return new URL(url).hostname;
+    } catch {
+        return url || "";
+    }
 }
 
 /**
@@ -47,6 +58,25 @@ export function excerptOf(content) {
     const lastSpace = cut.lastIndexOf(" ");
     const trimmed = lastSpace > PREVIEW_LIMIT * 0.6 ? cut.slice(0, lastSpace) : cut;
     return trimmed + "...";
+}
+
+/** Слов в минуту для оценки времени чтения. */
+const WORDS_PER_MINUTE = 180;
+
+/**
+ * Оценивает время чтения статьи по количеству слов.
+ *
+ * @param {string|null|undefined} text - Текст статьи (поле {@link Article#content}).
+ * @returns {string} Строка вида ``"≈7 мин"``. Минимум ``"≈1 мин"``.
+ *
+ * @example
+ * readingTimeOf("слово ".repeat(360));
+ * // => "≈2 мин"
+ */
+export function readingTimeOf(text) {
+    const words = (text || "").trim().split(/\s+/).filter(Boolean).length;
+    const minutes = Math.max(1, Math.round(words / WORDS_PER_MINUTE));
+    return `≈${minutes} мин`;
 }
 
 /**
