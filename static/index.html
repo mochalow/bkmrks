@@ -6,6 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>bkmrks</title>
 
+    <script>
+        (function () {
+            var saved = localStorage.getItem("bkmrks:theme");
+            if (saved === "light" || saved === "dark") document.documentElement.dataset.theme = saved;
+        })();
+    </script>
+
     <script type="importmap">
         {
           "imports": {
@@ -22,80 +29,135 @@
 <body>
 
 <!-- Точка монтирования Vue -->
-<div id="app" class="page" v-cloak>
+<div id="app" v-cloak>
 
-    <header class="topbar">
-        <a class="brand" href="/" aria-label="bkmrks — на главную">
-            <svg class="brand-mark" width="24" height="29" viewBox="0 0 40 48" aria-hidden="true">
-                <path d="M0,6 A6,6 0 0 1 6,0 H34 A6,6 0 0 1 40,6 V48 L20,36 L0,48 Z"/>
-            </svg>
-            <span class="brand-name">bkmrks</span>
-        </a>
-
-        <form class="save-form" @submit.prevent="save">
-            <input class="save-input" type="url" v-model="newUrl" placeholder="Вставьте ссылку на статью..."
-                   aria-label="Адрес статьи" required>
-            <button class="btn btn-primary" type="submit" :disabled="saving">
-                {{ saving ? "Сохранение" : "Сохранить" }}
-            </button>
-        </form>
-    </header>
-
-    <p class="save-error" v-if="saveError" role="alert">{{ saveError }}</p>
-
-    <main>
-        <div class="filters">
-            <div class="search">
-                <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
-                    <circle cx="11" cy="11" r="7"/>
-                    <path d="M20 20l-3.5-3.5"/>
+    <div class="library-top">
+        <div class="library-top__inner">
+            <a class="brand library-brand" href="/" aria-label="bkmrks — на главную">
+                <svg class="brand-mark" width="24" height="29" viewBox="0 0 40 48" aria-hidden="true">
+                    <path d="M0,6 A6,6 0 0 1 6,0 H34 A6,6 0 0 1 40,6 V48 L20,36 L0,48 Z"/>
                 </svg>
-                <input class="search-input" type="search" v-model="q" placeholder="Поиск"
-                       aria-label="Поиск">
-            </div>
-            <div class="tags-bar">
-                <div class="chips-wrap">
-                    <div class="chips" ref="chipsEl"
-                         :class="{ 'is-collapsed': tagsOverflow && !tagsExpanded }">
-                        <button class="chip" type="button" :class="{ 'is-active': activeTag === '' }"
-                                @click="selectTag('')">все
-                        </button>
-                        <button v-for="tag in allTags" :key="tag" class="chip" type="button"
-                                :class="{ 'is-active': activeTag === tag }" :title="tag"
-                                @click="selectTag(tag)">{{ tag }}
-                        </button>
-                    </div>
-                    <button v-if="tagsOverflow" class="chip chip-more" type="button"
-                            :aria-expanded="tagsExpanded" @click="tagsExpanded = !tagsExpanded">
-                        {{ tagsExpanded ? "Свернуть" : "Ещё " + hiddenTagCount }}
-                    </button>
-                </div>
-            </div>
+                <span class="brand-name">bkmrks</span>
+            </a>
         </div>
 
-        <section class="cards">
-            <a v-for="article in articles" :key="article.id" class="card-link" :href="readerHref(article.id)">
-                <article class="card">
-                    <div class="card-head">
-                        <h2 class="card-title">{{ article.title || "Без заголовка" }}</h2>
-                        <time class="card-date" :datetime="article.saved_at">
-                            {{ dateShort(article.saved_at) }}
-                        </time>
-                    </div>
-                    <div class="card-domain">{{ domainOf(article.url) }}</div>
-                    <p class="card-excerpt" v-if="article.content">
-                        {{ excerptOf(article.content) }}
-                    </p>
-                    <div class="card-tags" v-if="article.tags.length">
-                        <span class="tag" v-for="tag in article.tags" :key="tag" :title="tag">{{ tag }}</span>
-                    </div>
-                </article>
-            </a>
-        </section>
+        <header class="library-toolbar">
+            <div class="toolbar-right">
+                <div class="toolbar-actions">
+                    <details class="export-menu" ref="exportMenu">
+                        <summary class="btn-secondary export-menu__trigger"
+                                 :aria-busy="exporting ? 'true' : 'false'">
+                            {{ exporting ? "Скачивание..." : "Экспорт" }}
+                        </summary>
+                        <menu class="export-menu__list">
+                            <li>
+                                <button type="button" :disabled="exporting"
+                                        @click="downloadExport('zip')">Архив ZIP
+                                </button>
+                            </li>
+                            <li>
+                                <button type="button" :disabled="exporting"
+                                        @click="downloadExport('json')">JSON
+                                </button>
+                            </li>
+                        </menu>
+                    </details>
+                </div>
+                <button class="theme-toggle" type="button" @click="toggleTheme"
+                        :aria-label="theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'">
+                    <svg v-if="theme === 'dark'" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                         aria-hidden="true">
+                        <circle cx="12" cy="12" r="4"/>
+                        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+                    </svg>
+                    <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+    </div>
 
-        <p class="cards-status" v-if="status">{{ status }}</p>
-    </main>
+    <div class="page library-page">
+        <header class="library-header">
+            <form class="save-form" @submit.prevent="save">
+                <input class="save-input" type="url" v-model="newUrl" placeholder="Вставьте ссылку на статью..."
+                       aria-label="Адрес статьи" required>
+                <button class="btn btn-primary" type="submit" :disabled="saving">
+                    {{ saving ? "Сохранение" : "Сохранить" }}
+                </button>
+            </form>
+
+            <p class="save-error" v-if="saveError" role="alert">{{ saveError }}</p>
+            <p class="save-error" v-if="exportError" role="alert">{{ exportError }}</p>
+
+            <div class="library-divider" aria-hidden="true"></div>
+        </header>
+
+        <main>
+            <div class="filters">
+                <div class="search">
+                    <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor"
+                         stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+                        <circle cx="11" cy="11" r="7"/>
+                        <path d="M20 20l-3.5-3.5"/>
+                    </svg>
+                    <input class="search-input" type="search" v-model="q" ref="searchInput" placeholder="Поиск (/)"
+                           aria-label="Поиск">
+                </div>
+                <div class="tags-bar">
+                    <div class="chips-wrap">
+                        <div class="chips" ref="chipsEl"
+                             :class="{ 'is-collapsed': tagsOverflow && !tagsExpanded }">
+                            <button class="chip" type="button" :class="{ 'is-active': activeTag === '' }"
+                                    @click="selectTag('')">все
+                            </button>
+                            <button v-for="tag in allTags" :key="tag" class="chip" type="button"
+                                    :class="{ 'is-active': activeTag === tag }" :title="tag"
+                                    @click="selectTag(tag)">{{ tag }}
+                                <span class="chip-count">{{ tagCounts[tag] ?? 0 }}</span>
+                            </button>
+                        </div>
+                        <button v-if="tagsOverflow" class="chip chip-more" type="button"
+                                :aria-expanded="tagsExpanded" @click="tagsExpanded = !tagsExpanded">
+                            {{ tagsExpanded ? "Свернуть" : "Ещё " + hiddenTagCount }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <section class="cards">
+                <a v-for="article in articles" :key="article.id" class="card-link" :href="readerHref(article.id)">
+                    <article class="card">
+                        <img class="card-cover" v-if="article.image" :src="article.image" :alt="article.title || ''">
+                        <div class="card-body">
+                            <div class="card-head">
+                                <h2 class="card-title">{{ article.title || "Без заголовка" }}</h2>
+                                <time class="card-date" :datetime="article.saved_at">
+                                    {{ dateShort(article.saved_at) }}
+                                </time>
+                            </div>
+                            <div class="card-domain">
+                                {{ domainOf(article.url) }}
+                                <template v-if="article.content"> · {{ readingTimeOf(article.content) }}</template>
+                            </div>
+                            <p class="card-excerpt" v-if="article.content || article.description">
+                                {{ excerptOf(article.content || article.description) }}
+                            </p>
+                            <div class="card-tags" v-if="article.tags.length">
+                                <span class="tag" v-for="tag in article.tags" :key="tag" :title="tag">{{ tag }}</span>
+                            </div>
+                        </div>
+                    </article>
+                </a>
+            </section>
+
+            <p class="cards-status" v-if="status">{{ status }}</p>
+        </main>
+    </div>
 </div>
 
 </body>

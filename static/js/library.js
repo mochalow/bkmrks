@@ -13,10 +13,11 @@
  */
 
 import {createApp, ref, watch, onMounted, onUnmounted, nextTick} from "vue";
-import {createArticle, listArticles} from "/js/api.js";
+import {createArticle, exportLibrary, listArticles, listTags} from "/js/api.js";
 
 /** @typedef {module:api~Article} Article */
-import {dateShort, domainOf, excerptOf} from "/js/format.js";
+import {dateShort, domainOf, excerptOf, readingTimeOf} from "/js/format.js";
+import {theme, toggleTheme} from "/js/theme.js";
 
 /** Задержка для поля поиска, мс. */
 const DEBOUNCE_MS = 300;
@@ -27,30 +28,39 @@ const DEBOUNCE_MS = 300;
  * Состояние страницы:
  *
  * - ``articles`` - отфильтрованный список для отображения.
- * - ``allTags`` - уникальные теги всей библиотеки.
- * - ``q`` / ``activeTag`` - текущие фильтры.
+ * - ``allTags`` / ``tagCounts`` - чипы тегов.
+ * - ``q`` / ``activeTag`` — текущие фильтры (источник правды - URL).
  * - ``status`` - сообщение о загрузке, пустой библиотеке или ошибке.
  *
- * Защита от гонок. Каждый вызов {@link refreshList} получает
- * монотонно возрастающий ``requestId``. Устаревшие ответы отбрасываются, если
- * пользователь уже сменил фильтры.
+ * Защита от гонок: каждый вызов {@link refreshList} получает
+ * монотонно возрастающий ``requestId``. Устаревшие ответы отбрасываются.
+ *
+ * @see module:api
+ * @see module:format
  */
 createApp({
     setup() {
         /** @type {Article[]} */
         const articles = ref([]);
         const allTags = ref([]);
+        const tagCounts = ref({});
         const q = ref("");
         const activeTag = ref("");
         const status = ref("Библиотека загружается...");
         const newUrl = ref("");
         const saving = ref(false);
         const saveError = ref("");
+        const exporting = ref(false);
+        const exportError = ref("");
         const tagsExpanded = ref(false);
         const tagsOverflow = ref(false);
         const hiddenTagCount = ref(0);
         /** @type {HTMLElement|null} */
         const chipsEl = ref(null);
+        /** @type {HTMLInputElement|null} */
+        const searchInput = ref(null);
+        /** @type {HTMLDetailsElement|null} */
+        const exportMenu = ref(null);
         /** @type {number|null} */
         let chipsCollapsedMax = null;
 
@@ -69,10 +79,11 @@ createApp({
 
         const params = new URLSearchParams(location.search);
         q.value = params.get("q") || "";
-        activeTag.value = params.get("tag") || "";
+        activeTag.value = (params.get("tag") || "").trim().toLowerCase();
 
         /**
          * Записывает текущие фильтры в адресную строку без перезагрузки.
+         * Использует history.replaceState, чтобы не засорять историю браузера.
          * @returns {void}
          */
         function syncUrl() {
@@ -88,6 +99,9 @@ createApp({
 
         /**
          * Загружает список статей с учётом ``q`` и ``activeTag``.
+         *
+         * При успехе обновляет ``articles`` и ``status``.
+         * При ошибке показывает сообщение и очищает список.
          * @returns {Promise<void>}
          */
         async function refreshList() {
@@ -107,6 +121,8 @@ createApp({
 
         /**
          * Применяет фильтры: обновляет URL и перезапрашивает список.
+         *
+         * Вызывается из watcher поиска (с debounce) и при выборе тега.
          * @returns {void}
          */
         function applyFilters() {
@@ -131,24 +147,22 @@ createApp({
         });
 
         /**
-         * Загружает полный список статей и строит ряд тегов.
+         * Загружает счётчики тегов (без полного текста статей) и строит ряд чипов.
          *
          * Активный тег из URL сохраняется в чипах даже если ни у одной
          * статьи его больше нет, иначе фильтр стал бы невидимым.
+         *
+         * После загрузки вызывает {@link updateTagsOverflow}.
          * @returns {Promise<void>}
          */
         async function loadChips() {
-            const full = await listArticles();
-            const set = new Set();
-            for (const a of full) {
-                for (const t of a.tags) set.add(t);
-            }
-
-            const tags = Array.from(set).sort((a, b) => a.localeCompare(b, "ru"));
+            const counts = await listTags();
+            const tags = Object.keys(counts).sort((a, b) => a.localeCompare(b, "ru"));
             if (activeTag.value && !tags.includes(activeTag.value)) {
                 tags.push(activeTag.value);
             }
             allTags.value = tags;
+            tagCounts.value = counts;
             await nextTick();
             updateTagsOverflow();
         }
@@ -156,6 +170,10 @@ createApp({
         /**
          * Определяет, помещается ли ряд чипов в свёрнутую высоту,
          * и считает скрытые теги для кнопки "Ещё N".
+         *
+         * Измерение всегда выполняется в свёрнутом layout (``is-collapsed``):
+         * без него контейнер уже, перенос строк другой, и счётчик завышается.
+         * Считаются только кнопки-теги, не числа статей в ``.chip-count``.
          * @returns {void}
          */
         function updateTagsOverflow() {
@@ -170,21 +188,32 @@ createApp({
                 chipsCollapsedMax = readChipsCollapsedMax(el);
             }
 
+            if (!el.classList.contains("is-collapsed")) el.classList.add("is-collapsed");
+
             const overflows = el.scrollHeight > chipsCollapsedMax;
             tagsOverflow.value = overflows;
+
             if (!overflows) {
                 tagsExpanded.value = false;
                 hiddenTagCount.value = 0;
-                return;
+            } else {
+                const top = el.getBoundingClientRect().top;
+                hiddenTagCount.value = [...el.querySelectorAll(":scope > button.chip")]
+                    .filter((chip) => chip.getBoundingClientRect().top - top >= chipsCollapsedMax)
+                    .length;
             }
 
-            hiddenTagCount.value = [...el.querySelectorAll(".chip")]
-                .filter((chip) => chip.offsetTop >= chipsCollapsedMax)
-                .length;
+            if (tagsOverflow.value && !tagsExpanded.value) {
+                el.classList.add("is-collapsed");
+            } else {
+                el.classList.remove("is-collapsed");
+            }
         }
 
         /**
          * Сохраняет статью по URL из поля ввода и обновляет список и чипы.
+         *
+         * В случае успеха очищает поле ввода. Ошибки показываются в ``saveError``.
          * @returns {Promise<void>}
          */
         async function save() {
@@ -205,6 +234,24 @@ createApp({
         }
 
         /**
+         * Скачивает резервную копию библиотеки через ``GET /api/export``.
+         * @param {"zip"|"json"} [format="zip"] - Формат экспорта.
+         * @returns {Promise<void>}
+         */
+        async function downloadExport(format = "zip") {
+            exportError.value = "";
+            exporting.value = true;
+            try {
+                await exportLibrary(format);
+            } catch (err) {
+                exportError.value = err.message;
+            } finally {
+                exporting.value = false;
+                exportMenu.value?.removeAttribute("open");
+            }
+        }
+
+        /**
          * Формирует ссылку на страницу читалки для статьи.
          * @param {string} id - UUID статьи.
          * @returns {string} Путь вида ``/reader.html?id=...``
@@ -215,10 +262,28 @@ createApp({
             if (tag) tagsExpanded.value = true;
         }, {immediate: true});
 
+        watch(tagsExpanded, () => nextTick(updateTagsOverflow));
+
         const onResize = () => updateTagsOverflow();
+
+        /**
+         * Хоткей ``/`` для фокуса на поле поиска. Не срабатывает, если фокус
+         * уже в поле ввода - иначе набор "/" в адресе статьи перехватывал бы фокус.
+         *
+         * @param {KeyboardEvent} event
+         * @returns {void}
+         */
+        function onGlobalKeydown(event) {
+            if (event.key !== "/") return;
+            const active = document.activeElement;
+            if (active && ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName)) return;
+            event.preventDefault();
+            searchInput.value?.focus();
+        }
 
         onMounted(async () => {
             window.addEventListener("resize", onResize);
+            document.addEventListener("keydown", onGlobalKeydown);
             try {
                 await loadChips();
             } catch (err) {
@@ -228,12 +293,18 @@ createApp({
             await refreshList();
         });
 
-        onUnmounted(() => window.removeEventListener("resize", onResize));
+        onUnmounted(() => {
+            clearTimeout(debounceTimer);
+            window.removeEventListener("resize", onResize);
+            document.removeEventListener("keydown", onGlobalKeydown);
+        });
 
         return {
-            articles, allTags, q, activeTag, status, newUrl, saving, saveError,
-            tagsExpanded, tagsOverflow, hiddenTagCount, chipsEl,
-            save, selectTag, domainOf, excerptOf, dateShort, readerHref,
+            articles, allTags, tagCounts, q, activeTag, status, newUrl, saving, saveError,
+            exporting, exportError,
+            tagsExpanded, tagsOverflow, hiddenTagCount, chipsEl, searchInput, exportMenu,
+            save, downloadExport, selectTag, domainOf, excerptOf, dateShort, readingTimeOf, readerHref,
+            theme, toggleTheme,
         };
     }
 }).mount("#app");

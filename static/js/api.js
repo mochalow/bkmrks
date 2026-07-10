@@ -1,5 +1,5 @@
 /**
- * @fileoverview Клиентский доступ к REST API приложения bkmrks.
+ * @fileoverview Клиентский доступ к REST API.
  *
  * Единственное место, где фронтенд знает про HTTP. Ответы ``fetch``,
  * статус-коды и формат ошибок FastAPI не выходят за пределы модуля.
@@ -11,14 +11,19 @@
  */
 
 /**
- * Статья, как её возвращает сервер (модель Pydantic ``Article``).
+ * Статья, как её возвращает сервер (модель Pydantic ``Article`` в main.py).
  *
  * @typedef {Object} Article
  * @property {string} id - UUID4 в строковом виде.
  * @property {string} url - Исходный адрес сохранённой страницы.
  * @property {string} saved_at - Момент сохранения в UTC (ISO 8601).
  * @property {string|null} title - Заголовок из метаданных страницы.
- * @property {string|null} content - Очищенный plain text с переносами ``\\n``.
+ * @property {string|null} content - Очищенный текст статьи (plain text с переносами строк между абзацами).
+ * @property {string|null} author - Автор статьи из метаданных страницы.
+ * @property {string|null} date - Дата публикации из метаданных страницы.
+ * @property {string|null} description - Краткое описание страницы.
+ * @property {string|null} sitename - Название сайта-источника.
+ * @property {string|null} image - Адрес локально сохранённой обложки статьи (или null).
  * @property {string[]} tags - Теги в нижнем регистре, без дубликатов.
  */
 
@@ -36,6 +41,8 @@
  * Сетевые сбои оборачиваются в понятное сообщение. HTTP-ошибки
  * переводятся через {@link extractDetail}. Успешный ответ ``204``
  * возвращает ``null`` без попытки парсить JSON.
+ *
+ * **Внутренняя функция.** Все публичные экспорты используют её.
  *
  * @param {string} path - Путь запроса, начиная с ``/api``.
  * @param {RequestInit} [options] - Параметры ``fetch`` (method, headers, body).
@@ -115,6 +122,17 @@ export async function listArticles({q, tag} = {}) {
 }
 
 /**
+ * Запрашивает теги, встречающиеся хотя бы в одной статье, со счётчиками.
+ *
+ * В отличие от {@link listArticles}, не скачивает полный текст статей.
+ *
+ * @returns {Promise<Object.<string, number>>} Теги по алфавиту -> число статей.
+ */
+export async function listTags() {
+    return request("/api/tags");
+}
+
+/**
  * Загружает одну статью по идентификатору.
  *
  * @param {string} id - UUID статьи.
@@ -128,9 +146,14 @@ export async function getArticle(id) {
 /**
  * Сохраняет новую статью. Сервер скачивает URL и извлекает текст.
  *
+ * При дубликате по URL сервер вернёт существующую статью (статус 200).
+ *
  * @param {string} url - Адрес страницы для парсинга.
  * @returns {Promise<Article>} Созданная статья (статус 201 на сервере).
  * @throws {Error} ``422`` - не удалось скачать или распарсить страницу.
+ *
+ * @example
+ * const art = await createArticle("https://example.com/post");
  */
 export async function createArticle(url) {
     return request("/api/articles", {
@@ -183,4 +206,48 @@ export async function addTag(id, tag) {
  */
 export async function removeTag(id, tag) {
     return request("/api/articles/" + encodeURIComponent(id) + "/tags/" + encodeURIComponent(tag), {method: "DELETE"});
+}
+
+/**
+ * Скачивает экспорт всей библиотеки.
+ *
+ * Триггерит скачивание файла в браузере.
+ *
+ * @param {"zip"|"json"} [format="zip"] - ``zip`` с обложками или компактный ``json``.
+ * @returns {Promise<void>}
+ * @throws {Error} Сеть недоступна или сервер вернул статус >= 400.
+ *
+ * @example
+ * await exportLibrary("json");
+ */
+export async function exportLibrary(format = "zip") {
+    let response;
+    try {
+        response = await fetch("/api/export?format=" + encodeURIComponent(format));
+    } catch (err) {
+        throw new Error("Не удалось связаться с сервером. Проверьте, что приложение запущено.",
+            {cause: err});
+    }
+
+    if (!response.ok) {
+        throw new Error(await extractDetail(response));
+    }
+
+    const blob = await response.blob();
+    const disposition = response.headers.get("Content-Disposition");
+    let filename = format === "zip" ? "bkmrks-export.zip" : "bkmrks-export.json";
+    const match = disposition && /filename="?([^";\n]+)"?/.exec(disposition);
+    if (match) {
+        filename = match[1];
+    }
+
+    const url = URL.createObjectURL(blob);
+    try {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        link.click();
+    } finally {
+        URL.revokeObjectURL(url);
+    }
 }
