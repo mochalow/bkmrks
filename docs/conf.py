@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 project = "bkmrks"
 author = "Ivan Mochalov"
 copyright = "2026, Ivan Mochalov"
-release = "0.1.0"
+release = "0.2.0"
 language = "ru"
 
 extensions = [

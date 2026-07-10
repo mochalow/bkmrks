@@ -63,7 +63,7 @@ tags_metadata = [
 
 app = FastAPI(
     title="bkmrks",
-    version="0.1.0",
+    version="0.2.0",
     description=(
         "Инструмент для сохранения и чтения статей из интернета.\n\n"
         "**Как это работает:**\n"

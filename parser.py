@@ -37,7 +37,7 @@ import trafilatura
 
 logger = logging.getLogger(__name__)
 
-USER_AGENT = "bkmrks/0.1 (+https://github.com/mochalow/bkmrks)"
+USER_AGENT = "bkmrks/0.2.0 (+https://github.com/mochalow/bkmrks)"
 """User-Agent, под которым бот представляется сайтам."""
 
 FETCH_TIMEOUT = 15

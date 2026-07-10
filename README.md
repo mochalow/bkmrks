@@ -1,4 +1,4 @@
-# bkmrks
+# <svg xmlns="http://www.w3.org/2000/svg" width="26" height="31" viewBox="0 0 40 48" fill="#D6A85C" style="vertical-align: middle; margin-right: 6px;" aria-hidden="true"><path d="M0,6 A6,6 0 0 1 6,0 H34 A6,6 0 0 1 40,6 V48 L20,36 L0,48 Z"/></svg> bkmrks
 
 Приложение для сохранения, очистки и удобной организации статей из интернета.  
 Сохраняете URL -> приложение скачивает страницу, убирает рекламу, навигацию и мусор, сохраняет чистый читаемый текст.
@@ -141,7 +141,7 @@ cd docs && npm install && cd ..
 make -C docs docs          # Всё: Sphinx + JSDoc
 make -C docs docs-py       # Только Sphinx (Python)
 make -C docs docs-js       # Только JSDoc (JavaScript)
-make -C docs docs-clean    # Удалить docs/_build/Как
+make -C docs docs-clean    # Удалить docs/_build/
 ```
 
 | Формат             | Результат                     |
