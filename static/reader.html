@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>bkmrks — читалка</title>
 
+    <script>
+        (function () {
+            var saved = localStorage.getItem("bkmrks:theme");
+            if (saved === "light" || saved === "dark") document.documentElement.dataset.theme = saved;
+        })();
+    </script>
+
     <script type="importmap">
         {
           "imports": {
@@ -24,11 +31,36 @@
     <header class="reader-toolbar">
         <a class="back-link" href="/" aria-label="Вернуться в библиотеку">← В библиотеку</a>
 
-        <!-- Действия появляются только когда статья загружена -->
-        <div class="toolbar-actions" v-if="article">
-            <a class="btn-secondary" :href="article.url" target="_blank" rel="noopener">Оригинал ↗</a>
-            <button class="btn-danger" type="button"
-                    :disabled="deleting" @click="removeArticle">Удалить
+        <div class="toolbar-right">
+            <!-- Действия появляются только когда статья загружена -->
+            <div class="toolbar-actions" v-if="article">
+                <div class="font-size-control" role="group" aria-label="Размер шрифта">
+                    <button type="button" :disabled="!canDecreaseFontSize"
+                            aria-label="Уменьшить шрифт" @click="stepFontScale(-1)">A-
+                    </button>
+                    <span class="font-size-value" aria-live="polite">{{ fontSizePx }}</span>
+                    <button type="button" :disabled="!canIncreaseFontSize"
+                            aria-label="Увеличить шрифт" @click="stepFontScale(1)">A+
+                    </button>
+                </div>
+                <a class="btn-secondary" :href="article.url" target="_blank" rel="noopener">Оригинал ↗</a>
+                <button class="btn-danger" type="button"
+                        :disabled="deleting" @click="removeArticle">Удалить
+                </button>
+            </div>
+
+            <button class="theme-toggle" type="button" @click="toggleTheme"
+                    :aria-label="theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'">
+                <svg v-if="theme === 'dark'" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                     aria-hidden="true">
+                    <circle cx="12" cy="12" r="4"/>
+                    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+                </svg>
+                <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+                </svg>
             </button>
         </div>
     </header>
@@ -40,8 +72,11 @@
 
         <article v-if="article">
             <p class="reader-meta">
-                <span>{{ domainOf(article.url) }}</span> · сохранено
+                <span>{{ domainOf(article.url) }}</span>
+                <template v-if="article.author"> · {{ article.author }}</template>
+                · сохранено
                 <time :datetime="article.saved_at">{{ dateLong(article.saved_at) }}</time>
+                <template v-if="article.content"> · {{ readingTimeOf(article.content) }}</template>
             </p>
             <h1 class="reader-title">{{ article.title || "Без заголовка" }}</h1>
 
@@ -64,7 +99,7 @@
                 </form>
             </div>
 
-            <div class="reader-content">
+            <div class="reader-content" :style="{ '--reader-font-scale': fontScale }">
                 <p v-for="(para, i) in paragraphs" :key="i">{{ para }}</p>
             </div>
         </article>
