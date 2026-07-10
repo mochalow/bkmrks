@@ -55,6 +55,8 @@
 
 ### В контейнере
 
+Сначала установите [Docker](https://docs.docker.com/get-docker/) и Docker Compose.
+
 ```bash
 git clone https://github.com/mochalow/bkmrks
 cd bkmrks
@@ -62,14 +64,25 @@ docker compose up --build
 ```
 
 Приложение поднимется на `http://localhost:8000`. Данные живут в именованном
-томе `bkmrks-data`.
+томе `bkmrks-data` и сохраняются между перезапусками.
+
+Остановить: `Ctrl+C`. Полностью остановить и удалить контейнер (данные в volume останутся): `docker compose down`.
 
 ### Без контейнера
 
+Требуется **Python 3.12**.
+
+На Ubuntu / Debian и производных:
+
 ```bash
+# 1. Системные зависимости (один раз)
+sudo apt update
+sudo apt install -y python3 python3-venv python3-pip
+
+# 2. Клонирование и первый запуск
 git clone https://github.com/mochalow/bkmrks
 cd bkmrks
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn main:app --reload
@@ -77,6 +90,15 @@ uvicorn main:app --reload
 
 Приложение поднимется на `http://localhost:8000`. Данные живут в `data/articles/` рядом
 с кодом.
+
+**Примечание.** При каждом новом запуске в терминале нужно заново активировать окружение:
+
+```bash
+source .venv/bin/activate
+uvicorn main:app --reload
+```
+
+Остановить: `Ctrl+C` в терминале.
 
 ## Документация
 
