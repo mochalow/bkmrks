@@ -1,3 +1,14 @@
+# Runtime article storage (не запекать локальные статьи в слои образа)
+data/
+
+# Тулчейн документации - в рантайме не нужен, docs/node_modules огромный
+docs/
+node_modules/
+
+# Virtualenv / VCS
+.venv/
+.git/
+
 ### Windows template
 # Windows thumbnail cache files
 Thumbs.db
