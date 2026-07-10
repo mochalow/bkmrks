@@ -4,8 +4,7 @@
   "description": "Dev-инструменты для документации bkmrks",
   "private": true,
   "devDependencies": {
-    "clean-jsdoc-theme": "^4.0.0",
-    "jsdoc": "^4.0.0"
+    "jsdoc": "^4.0.4"
   },
   "scripts": {
     "docs:js": "jsdoc -c jsdoc.json"

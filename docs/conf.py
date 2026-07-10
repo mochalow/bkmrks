@@ -35,13 +35,19 @@ napoleon_numpy_docstring = False
 autodoc_typehints = "description"
 autodoc_member_order = "bysource"
 
+# Дополнительные опции по умолчанию для .. autoclass:: и .. automodule::
+autodoc_default_options = {
+    "members": True,
+    "undoc-members": False,
+    "show-inheritance": True,
+}
+
 html_title = "bkmrks — документация"
 html_short_title = "bkmrks"
 html_theme = "furo"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 html_favicon = "_static/favicon.svg"
-html_logo = "_static/favicon.svg"
 
 pygments_style = "sphinx"
 pygments_dark_style = "monokai"
@@ -66,3 +72,15 @@ html_theme_options = {
 }
 
 exclude_patterns = ["_build", "node_modules"]
+
+
+# Скрываем служебные атрибуты Pydantic (model_config и т.п.) из Sphinx-документации.
+# Они появляются автоматически при :members: на классах BaseModel.
+def _skip_pydantic_internals(app, what, name, obj, skip, options):
+    if name in ("model_config", "model_fields", "model_computed_fields"):
+        return True
+    return skip
+
+
+def setup(app):
+    app.connect("autodoc-skip-member", _skip_pydantic_internals)

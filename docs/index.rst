@@ -13,7 +13,7 @@ bkmrks
    * - Формат
      - Описание
    * - :doc:`about`
-     - Описание проекта (фрагмент ``README.md``)
+     - Описание проекта (полный ``README.md``)
    * - :doc:`reference`
      - Справочник Python-модулей (``main``, ``parser``, ``storage``)
    * - `JSDoc <../js/index.html>`_
