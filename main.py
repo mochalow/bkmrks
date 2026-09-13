@@ -27,13 +27,13 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path as PathlibPath
 
-from fastapi import FastAPI, HTTPException, Response, APIRouter, Query, Path
+from fastapi import APIRouter, FastAPI, HTTPException, Path, Query, Response
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, HttpUrl
 
-import storage
 import parser
+import storage
 
 logging.basicConfig(level=logging.INFO)
 
