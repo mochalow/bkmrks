@@ -99,7 +99,8 @@
                 </form>
             </div>
 
-            <div class="reader-content" :style="{ '--reader-font-scale': fontScale }">
+            <div class="reader-content" role="region" aria-label="Текст статьи"
+                 :style="{ '--reader-font-scale': fontScale }">
                 <p v-for="(para, i) in paragraphs" :key="i">{{ para }}</p>
             </div>
         </article>
