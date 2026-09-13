@@ -158,6 +158,10 @@ def _fetch(
                 )
             return content, response.headers.get("Content-Type", "")
     except urllib.error.HTTPError as e:
+        # HTTPError - не только исключение, но и файловый объект поверх
+        # соединения, и живёт он в __cause__ до конца обработки запроса.
+        # Без close() ответ держит сокет всё это время.
+        e.close()
         raise ValueError(f"Сайт вернул ошибку {e.code}: {url}") from e
     except TimeoutError as e:
         raise ValueError(f"Сайт не ответил за {timeout:.0f} секунд: {url}") from e
