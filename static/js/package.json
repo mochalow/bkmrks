@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "type": "module",
+  "description": "Файлы static/js - ES-модули (браузер знает это по type=module в HTML). Node определяет тип по этому файлу: без него import из тестов падает с SyntaxError. Зависимостей нет, сборка не нужна."
+}
