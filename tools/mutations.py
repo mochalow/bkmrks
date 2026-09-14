@@ -106,6 +106,18 @@ MUTANTS = [
         "tests/test_resilience.py::test_redirect_guard_is_wired_into_the_opener",
         "pytest",
     ),
+    # Порча, которую нашла матрица CI: на 3.12 незакрытый ответ никого
+    # не беспокоит, на 3.14 приходит ResourceWarning из деструктора и
+    # красит тест, до которого доехал сборщик мусора, - то есть чужой.
+    # Поэтому закрытие проверяется явно, а не по цвету прогона.
+    Mutant(
+        "отказ в редиректе оставляет ответ открытым",
+        "parser.py",
+        "            fp.close()\n            raise",
+        "            raise",
+        "tests/test_resilience.py::test_rejects_redirect_to_private_address",
+        "pytest",
+    ),
     Mutant(
         "проверяется только первый разрешённый адрес",
         "parser.py",

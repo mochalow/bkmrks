@@ -355,15 +355,24 @@ def test_all_resolved_addresses_are_checked(resolver):
 
 
 def test_rejects_redirect_to_private_address():
-    """Редирект на внутренний адрес отклоняется так же, как исходный URL.
+    """Редирект на внутренний адрес отклоняется, и ответ на нём закрывается.
 
     Без этой проверки публичный хост мог бы ответить ``302`` на
     внутренний адрес и обойти защиту на входе.
+
+    Ответ читает и закрывает ``http_error_302`` - но только после
+    возврата из ``redirect_request``, то есть на отказе не закрывает
+    никогда. Закрыть его - работа самого охранника, поэтому вместо
+    ``None`` вторым аргументом стоит объект, у которого это можно
+    спросить.
     """
     handler = parser._GuardedRedirectHandler()
+    response = io.BytesIO()
 
     with pytest.raises(ValueError, match="непубличный"):
-        handler.redirect_request(None, None, 302, "Found", {}, "http://10.0.0.1/admin")
+        handler.redirect_request(None, response, 302, "Found", {}, "http://10.0.0.1/admin")
+
+    assert response.closed
 
 
 def test_allows_redirect_to_public_address(monkeypatch):
