@@ -1,6 +1,30 @@
 # Runtime article storage (не запекать локальные статьи в слои образа)
 data/
 
+# Тесты и CI - в рантайме не нужны
+tests/
+tools/
+.github/
+requirements-dev.txt
+pytest.ini
+ruff.toml
+.coverage
+.pytest_cache/
+.ruff_cache/
+
+# Рабочие документы автора и служебные каталоги инструментов. В .gitignore
+# они уже перечислены, но контекст сборки собирается из рабочего дерева,
+# а не из клона: без этого блока образ несёт .remember с историей сессий.
+CLAUDE.md
+tech.md
+.claudeignore
+.ignore
+.mcp.json
+.claude/
+.remember/
+.DS_Store
+**/.DS_Store
+
 # Тулчейн документации - в рантайме не нужен, docs/node_modules огромный
 docs/
 node_modules/

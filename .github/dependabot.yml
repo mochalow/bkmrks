@@ -1,0 +1,25 @@
+# Обновление закреплённых зависимостей.
+#
+# Без этого файла обещание pytest.ini - «устаревание чужих библиотек
+# замечается на CI» - исполнялось наполовину: requirements.txt это
+# полный транзитивный слепок (все строки через ==), requirements-dev.txt
+# закрепляет инструменты, а экшены закреплены по SHA. Новая версия не
+# приезжала бы, пока её не привозил человек.
+#
+# github-actions здесь ещё и единственный способ обновлять SHA: тег
+# можно перевесить, SHA нельзя, поэтому вручную это делается только
+# сверкой каждой строки с апстримом.
+version: 2
+updates:
+  - package-ecosystem: pip
+    # requirements.txt и requirements-dev.txt лежат в корне; второй
+    # начинается с `-r requirements.txt`, поэтому оба видны отсюда.
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

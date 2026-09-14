@@ -1,0 +1,10 @@
+[
+  "/api/articles",
+  "/api/articles/{article_id}",
+  "/api/articles/{article_id}/image",
+  "/api/articles/{article_id}/tags",
+  "/api/articles/{article_id}/tags/{tag}",
+  "/api/export",
+  "/api/health",
+  "/api/tags"
+]

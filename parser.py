@@ -95,7 +95,15 @@ class _GuardedRedirectHandler(urllib.request.HTTPRedirectHandler):
     """Пропускает редиректы только на публичные адреса (защита от SSRF)."""
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
-        _guard_public_url(newurl)
+        try:
+            _guard_public_url(newurl)
+        except ValueError:
+            # Ответ с редиректом читает и закрывает http_error_302 - но
+            # только после возврата отсюда, то есть на отказе не
+            # закрывает никогда. Без close() соединение висит до сборки
+            # мусора.
+            fp.close()
+            raise
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
@@ -158,6 +166,10 @@ def _fetch(
                 )
             return content, response.headers.get("Content-Type", "")
     except urllib.error.HTTPError as e:
+        # HTTPError - не только исключение, но и файловый объект поверх
+        # соединения, и живёт он в __cause__ до конца обработки запроса.
+        # Без close() ответ держит сокет всё это время.
+        e.close()
         raise ValueError(f"Сайт вернул ошибку {e.code}: {url}") from e
     except TimeoutError as e:
         raise ValueError(f"Сайт не ответил за {timeout:.0f} секунд: {url}") from e

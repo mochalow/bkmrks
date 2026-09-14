@@ -33,4 +33,8 @@ urllib3==2.7.0
 uvicorn==0.49.0
 uvloop==0.22.1
 watchfiles==1.2.0
-websockets==16.0
+# websockets намеренно отсутствует. Он приходит с экстрой
+# uvicorn[standard], но приложение WebSocket не обслуживает, а uvicorn
+# при ws="auto" грузит из него реализацию, объявленную устаревшей
+# (websockets.legacy). Возврат зависимости ловит тест
+# test_server_loads_no_websocket_implementation.

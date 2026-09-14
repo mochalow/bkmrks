@@ -18,6 +18,8 @@ import tempfile
 import uuid
 from pathlib import Path
 
+from pydantic import HttpUrl, TypeAdapter, ValidationError
+
 logger = logging.getLogger(__name__)
 
 DATA_DIR = Path(__file__).resolve().parent / "data" / "articles"
@@ -39,12 +41,40 @@ _IMAGE_EXTENSIONS = {
 }
 
 
+_URL_ADAPTER = TypeAdapter(HttpUrl)
+"""Валидатор адреса статьи - тот же, которым объявлено поле ответа API.
+
+Проверка обязана совпадать с моделью ответа, а не повторять её
+самодельным разбором: ``urllib.parse`` и ``HttpUrl`` расходятся в обе
+стороны. ``http://exa mple.com/`` стандартная библиотека разбирает, а
+модель отвергает; ``http:///path`` - наоборот, модель принимает, хотя
+хоста нет. Запись, прошедшая одну проверку и не прошедшая другую,
+роняет запрос целиком, поэтому проверка здесь ровно одна.
+"""
+
+
+def _is_usable_url(url: str) -> bool:
+    """Проверяет, что адрес можно отдать клиенту и превратить в ключ."""
+    try:
+        _URL_ADAPTER.validate_python(url)
+    except ValidationError:
+        return False
+    return True
+
+
 def _is_valid_record(data: object) -> bool:
-    """Проверяет, что словарь содержит обязательные поля статьи."""
+    """Проверяет, что словарь содержит обязательные поля статьи.
+
+    Адрес проверяется не только на тип. Строка, которую нельзя разобрать
+    как адрес, попадает в модель ответа и в ключ дедупликации, и там
+    роняет запрос: отказ одной записи становится отказом всей
+    библиотеки, а сохранение новых статей - невозможным.
+    """
     return (
             isinstance(data, dict)
             and isinstance(data.get("id"), str)
             and isinstance(data.get("url"), str)
+            and _is_usable_url(data["url"])
             and data.get("saved_at") is not None
             and data.get("content") is not None
     )
@@ -205,11 +235,11 @@ def load(article_id: str) -> dict | None:
         return None
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError) as e:
+    except (json.JSONDecodeError, UnicodeDecodeError, OSError) as e:
         logger.warning("Не удалось прочитать статью %s: %s", article_id, e)
         return None
     if not _is_valid_record(data):
-        logger.warning("Пропущена статья с неполными данными: %s", path.name)
+        logger.warning("Пропущена статья с непригодными данными: %s", path.name)
         return None
     return _normalize_record(data)
 
@@ -219,8 +249,9 @@ def load_all() -> list[dict]:
 
     Читает каждый ``*.json`` в :data:`DATA_DIR`. Порядок файлов
     не гарантируется - сортировку выполняет вызывающий код (API
-    сортирует по ``saved_at``). Файлы с повреждённым JSON пропускаются
-    с записью предупреждения в лог, а не роняют весь запрос.
+    сортирует по ``saved_at``). Повреждённые и нечитаемые файлы
+    пропускаются с записью предупреждения в лог, а не роняют весь
+    запрос.
 
     Каждая запись проходит :func:`_normalize_record`.
 
@@ -235,11 +266,19 @@ def load_all() -> list[dict]:
     for path in DATA_DIR.glob("*.json"):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            logger.warning("Пропущен повреждённый файл статьи: %s", path.name)
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError) as e:
+            # OSError ловится наравне с битым JSON: нечитаемый файл (права,
+            # каталог вместо файла, сбой диска) - такая же единичная
+            # поломка, и ронять из-за неё весь список нельзя.
+            #
+            # UnicodeDecodeError перечислен отдельно, потому что ни в
+            # OSError, ни в JSONDecodeError он не входит: это подвид
+            # ValueError, и файл в чужой кодировке ронял бы весь список,
+            # пока сам json до разбора не дошёл.
+            logger.warning("Пропущен нечитаемый файл статьи %s: %s", path.name, e)
             continue
         if not _is_valid_record(data):
-            logger.warning("Пропущена статья с неполными данными: %s", path.name)
+            logger.warning("Пропущена статья с непригодными данными: %s", path.name)
             continue
         articles.append(_normalize_record(data))
     return articles

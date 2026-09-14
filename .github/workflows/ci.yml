@@ -1,0 +1,163 @@
+# Проверки на каждый push и pull request.
+#
+# Три задачи, а не одна: у них разные скорости и разные причины падать.
+# Линтер с тестами отвечает за Python, node --test - за фронтенд,
+# сборка образа - за то, что приложение вообще запускается в контейнере.
+#
+# Сторонние экшены запинены по полному SHA (рекомендация GitHub):
+# тег можно перевесить на другой коммит, SHA - нельзя. Версия рядом
+# в комментарии, чтобы она оставалась видна в диффах.
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test:
+    name: Линтер и тесты Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    # Потолок ловит зависание, а не медленный раннер: без него повисший
+    # тест жёг бы шесть часов - столько GitHub даёт работе по умолчанию.
+    # Значения щедрые намеренно. Тугой потолок красит зелёный прогон без
+    # причины, то есть делает ровно то, против чего заведён.
+    timeout-minutes: 30
+    strategy:
+      # Красная новая версия не должна отменять прогон на прод-версии:
+      # сигнал теряется ровно там, где он нужнее всего.
+      fail-fast: false
+      matrix:
+        # 3.12 - прод (Dockerfile, ruff.toml). 3.14 - раннее предупреждение
+        # об устаревании: ломается сначала здесь, а не в день обновления прода.
+        python-version: ['3.12', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Суффикс разводит ключи кэша по версиям матрицы. Без него обе
+      # работы получают один ключ: setup-uv выполняется до `uv venv` и
+      # про матрицу не знает, а версию Python берёт у интерпретатора
+      # раннера. Кто добежал до сохранения первым, тот и занял запись,
+      # второму остаётся предупреждение «Failed to save».
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: true
+          cache-suffix: ${{ matrix.python-version }}
+
+      - name: Установить зависимости
+        run: |
+          uv venv --python ${{ matrix.python-version }}
+          uv pip install -r requirements-dev.txt
+
+      - name: Линтер
+        run: .venv/bin/ruff check .
+
+      # Браузер для дымовых E2E. Без этого шага сценарии пропускаются
+      # с причиной, и CI зелёный, ничего в браузере не проверив.
+      - name: Браузер для E2E
+        run: .venv/bin/python -m playwright install --with-deps chromium
+
+      # -rs печатает причины пропусков: иначе пропуск неотличим от прохождения.
+      #
+      # --cov-fail-under=100 - пол на сегодняшнем честном значении, а не
+      # цель.
+      #
+      # E2E_REQUIRED переводит пропуск браузерных сценариев в отказ. Без
+      # него сбой запуска браузера (шаг установки при этом зелёный) давал
+      # зелёный прогон, не проверивший в браузере ничего: причина
+      # печаталась, код возврата оставался нулевым. Переменную стережёт
+      # tests/test_ci_workflow.py - удалить её молча не получится.
+      #
+      # --tracing=on пишет трассу каждого браузерного сценария. Не
+      # retain-on-failure: судьбу трассы плагин решает по rep_call, то
+      # есть по фазе вызова, а проверка pageerror стоит в разборке - её
+      # падение оставляет rep_call зелёным, и трасса самого интересного
+      # класса отказов была бы выброшена. Двенадцать сценариев делают
+      # `on` дешёвым, а наружу трассы уезжают только при падении.
+      - name: Тесты с отчётом о покрытии
+        env:
+          E2E_REQUIRED: '1'
+        run: >-
+          .venv/bin/pytest -rs --cov=main --cov=parser --cov=storage
+          --cov-branch --cov-report=term-missing --cov-fail-under=100
+          --tracing=on
+
+      # Красный сценарий на раннере иначе недиагностируем: воспроизвести
+      # его локально мешает ровно то, ради чего заведён E2E_REQUIRED -
+      # браузер у разработчика может не стартовать вовсе.
+      # Имя artefacta различает версии матрицы: одинаковое имя у двух
+      # работ - конфликт при выгрузке.
+      - name: Трассы упавших сценариев
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-traces-py${{ matrix.python-version }}
+          path: test-results/
+          retention-days: 7
+
+  js-tests:
+    name: Тесты фронтенда
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+
+      # TZ фиксируется: форматирование дат зависит от пояса раннера,
+      # а тесты сравнивают результат посимвольно.
+      #
+      # Покрытие считается только по загруженным модулям, то есть по
+      # api.js и format.js. За тем, что их по-прежнему три,
+      # следит tests/js/modules.test.mjs, а не этот отчёт.
+      #
+      # Пороги стоят на сегодняшнем честном значении и служат полом
+      # («не ниже, чем вчера»), а не целью.
+      #
+      # Флаги --test-coverage-* требуют Node >= 22.8. Исключение тестов
+      # задано явно: умолчание менялось от версии к версии, и полагаться
+      # на него значит поставить порог в зависимость от минорной версии.
+      - name: Тесты с отчётом о покрытии
+        run: >-
+          node --test --experimental-test-coverage
+          --test-coverage-exclude='tests/**'
+          --test-coverage-lines=100 --test-coverage-branches=100
+          tests/js/*.test.mjs
+        env:
+          TZ: UTC
+
+  docker:
+    name: Сборка образа
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Собрать образ
+        run: docker build -t bkmrks:ci .
+
+      # Сборка проверяет, что образ собирается, но не что приложение в нём
+      # стартует. В Dockerfile есть нетривиальная часть с useradd и chown
+      # на /app/data - сломать права и не заметить до деплоя очень легко.
+      - name: Проверить, что приложение отвечает
+        run: |
+          docker run -d --name bkmrks-ci -p 8000:8000 bkmrks:ci
+          for _ in $(seq 30); do
+            if curl -fsS localhost:8000/api/health; then
+              echo "приложение отвечает"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "приложение не ответило за 30 секунд, логи контейнера:"
+          docker logs bkmrks-ci
+          exit 1
