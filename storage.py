@@ -235,7 +235,7 @@ def load(article_id: str) -> dict | None:
         return None
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError) as e:
+    except (json.JSONDecodeError, UnicodeDecodeError, OSError) as e:
         logger.warning("Не удалось прочитать статью %s: %s", article_id, e)
         return None
     if not _is_valid_record(data):
@@ -266,10 +266,15 @@ def load_all() -> list[dict]:
     for path in DATA_DIR.glob("*.json"):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError) as e:
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError) as e:
             # OSError ловится наравне с битым JSON: нечитаемый файл (права,
             # каталог вместо файла, сбой диска) - такая же единичная
             # поломка, и ронять из-за неё весь список нельзя.
+            #
+            # UnicodeDecodeError перечислен отдельно, потому что ни в
+            # OSError, ни в JSONDecodeError он не входит: это подвид
+            # ValueError, и файл в чужой кодировке ронял бы весь список,
+            # пока сам json до разбора не дошёл.
             logger.warning("Пропущен нечитаемый файл статьи %s: %s", path.name, e)
             continue
         if not _is_valid_record(data):

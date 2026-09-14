@@ -85,12 +85,57 @@ def test_unreadable_file_does_not_break_list(client, stored_article, caplog):
 
 
 @pytest.mark.json_storage
+def test_file_in_another_encoding_does_not_break_list(client, stored_article, caplog):
+    """Файл с байтами не в UTF-8 пропускается так же, как повреждённый.
+
+    Байты декодируются до того, как json увидит текст, поэтому такой
+    файл даёт ``UnicodeDecodeError``. Это подвид ``ValueError``: ни в
+    ``OSError``, ни в ``JSONDecodeError`` он не входит, и перечислять
+    его приходится отдельно.
+
+    Само приложение такой записи не оставит - ``save`` пишет UTF-8 и
+    переименованием, - но правка файла руками в cp1251, порча диска или
+    кривой перенос дают ровно этот случай.
+    """
+    caplog.set_level(logging.WARNING)
+    good = stored_article(title="Целая")
+    storage.DATA_DIR.joinpath("cp1251.json").write_bytes(
+        '{"id": "0", "url": "https://example.com/x", "title": "Заголовок"}'.encode("cp1251")
+    )
+
+    response = client.get("/api/articles")
+
+    assert response.status_code == 200
+    assert [a["id"] for a in response.json()] == [good["id"]]
+    assert "cp1251.json" in caplog.text
+
+
+@pytest.mark.json_storage
 def test_corrupted_file_does_not_break_single_read(client, stored_article, caplog):
     """Битая запись отдаёт 404, а не 500, и попадает в лог."""
     caplog.set_level(logging.WARNING)
     article_id = str(uuid.uuid4())
     storage.DATA_DIR.mkdir(parents=True, exist_ok=True)
     storage.DATA_DIR.joinpath(f"{article_id}.json").write_text("{не json", encoding="utf-8")
+
+    assert client.get(f"/api/articles/{article_id}").status_code == 404
+    assert article_id in caplog.text
+
+
+@pytest.mark.json_storage
+def test_file_in_another_encoding_does_not_break_single_read(client, caplog):
+    """Запись не в UTF-8 отдаёт 404, а не 500.
+
+    Зеркало ``test_file_in_another_encoding_does_not_break_list``: там
+    один файл выпадает из списка, здесь запрос за ним получает отказ, а
+    не трассу.
+    """
+    caplog.set_level(logging.WARNING)
+    article_id = str(uuid.uuid4())
+    storage.DATA_DIR.mkdir(parents=True, exist_ok=True)
+    storage.DATA_DIR.joinpath(f"{article_id}.json").write_bytes(
+        '{"title": "Заголовок"}'.encode("cp1251")
+    )
 
     assert client.get(f"/api/articles/{article_id}").status_code == 404
     assert article_id in caplog.text

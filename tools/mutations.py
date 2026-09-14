@@ -44,7 +44,7 @@
 
 Коды возврата: 0 - все проверенные мутанты убиты; 1 - есть выжившие;
 2 - сломан сам стенд (мутант не применяется, цель не найдена, контроль
-красный).
+красный, не запускается git, pytest или node).
 """
 
 import os
@@ -546,6 +546,49 @@ class BenchError(Exception):
     """Сломан стенд, а не проверяемый код."""
 
 
+class BenchTimeout(BenchError):
+    """Программа не уложилась в потолок.
+
+    Отдельный подвид нужен ровно одному месту - :func:`baseline`, где
+    сорвавшийся браузерный прогон разбирается на «браузера нет» и
+    «сломано что-то ещё». Зависание относится ко второму, а
+    неотличимое от прочих поломок оно уезжало бы в первое: стенд
+    повторял бы прогон, по пустому списку заключал «браузера нет» и
+    объявлял браузерных мутантов непроверенными.
+
+    :func:`main` ловит базовый класс, поэтому код возврата прежний.
+    """
+
+
+def run_tool(command, timeout=TIMEOUT, **kwargs):
+    """Запускает внешнюю программу, переводя срыв запуска в ``BenchError``.
+
+    О двух бедах ``subprocess.run`` сообщает не кодом возврата, а
+    исключением: программы нет (``FileNotFoundError``) и программа
+    зависла (``TimeoutExpired``). Оба пролетают мимо единственного
+    обработчика в :func:`main` и выходят трассой с кодом 1 - тем самым,
+    которым стенд сообщает о выживших мутантах.
+
+    Args:
+        command: Команда списком, первым элементом - программа.
+        timeout: Потолок в секундах.
+        **kwargs: Уходит в ``subprocess.run`` без изменений.
+
+    Returns:
+        Завершённый процесс.
+
+    Raises:
+        BenchError: программу не запустить или она не уложилась в
+            потолок.
+    """
+    try:
+        return subprocess.run(command, capture_output=True, text=True, timeout=timeout, **kwargs)
+    except FileNotFoundError as error:
+        raise BenchError(f"не запустить {command[0]}: программа не найдена") from error
+    except subprocess.TimeoutExpired as error:
+        raise BenchTimeout(f"{command[0]} не уложился в {error.timeout:g} с и снят") from error
+
+
 def copy_worktree(destination):
     """Копирует отслеживаемые git-ом файлы рабочего дерева.
 
@@ -563,9 +606,7 @@ def copy_worktree(destination):
     Raises:
         BenchError: git недоступен или дерево пустое.
     """
-    listing = subprocess.run(
-        ["git", "ls-files", "-z"], cwd=ROOT, capture_output=True, text=True, timeout=TIMEOUT
-    )
+    listing = run_tool(["git", "ls-files", "-z"], cwd=ROOT)
     if listing.returncode:
         raise BenchError(f"git ls-files не отработал: {listing.stderr.strip()}")
 
@@ -601,9 +642,10 @@ def run_pytest(targets, cwd, browser_required=False):
         Список строк ``FAILED`` (пустой, если всё зелено).
 
     Raises:
-        BenchError: цель не найдена, pytest сломался или сорвалась
-            фикстура - то есть прогон не состоялся и судить по нему
-            нельзя.
+        BenchError: цель не найдена, pytest не запустился, сломался
+            или сорвалась фикстура - то есть прогон не состоялся и
+            судить по нему нельзя.
+        BenchTimeout: pytest не уложился в потолок.
     """
     # Байткод не пишется на диск намеренно. Python считает .pyc годным,
     # если совпали размер и время правки источника с точностью до
@@ -617,12 +659,9 @@ def run_pytest(targets, cwd, browser_required=False):
         env[E2E_REQUIRED_ENV] = "1"
     else:
         env.pop(E2E_REQUIRED_ENV, None)
-    process = subprocess.run(
+    process = run_tool(
         [str(PYTEST), *targets, "-p", "no:randomly", "-p", "no:cacheprovider", "--no-header"],
         cwd=cwd,
-        capture_output=True,
-        text=True,
-        timeout=TIMEOUT,
         env=env,
     )
     if process.returncode == 5:
@@ -689,13 +728,13 @@ def node_results(test_file, cwd):
 
     Returns:
         Пару множеств ``(зелёные, красные)``.
+
+    Raises:
+        BenchError: node не запускается или не уложился в потолок.
     """
-    process = subprocess.run(
+    process = run_tool(
         ["node", "--test", "--test-reporter=spec", test_file],
         cwd=cwd,
-        capture_output=True,
-        text=True,
-        timeout=TIMEOUT,
         env={**os.environ, "TZ": "UTC"},
     )
     return _parse_node_output(process.stdout)
@@ -843,6 +882,13 @@ def baseline(mutants, cwd):
         return True
     try:
         failed = run_pytest(e2e_targets, cwd, browser_required=True)
+    except BenchTimeout:
+        # Зависание - поломка стенда, и разбору ниже его отдавать
+        # нельзя: повторный прогон без требования браузера пропустит
+        # сценарии, вернёт пустой список, и стенд объявит браузер
+        # недоступным. Мутанты остались бы непроверенными, а прогон
+        # нулевым - при зависшем, а не отсутствующем браузере.
+        raise
     except BenchError:
         # Прогон сорвался. Причин две, и они требуют разных ответов:
         # браузера нет (проверять нечем) или сломано что-то ещё (стенду

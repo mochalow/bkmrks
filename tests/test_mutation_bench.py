@@ -9,10 +9,22 @@
 
 import ast
 import re
+import sys
 
 import pytest
 
-from tools.mutations import MUTANTS, ROOT, _parse_node_output, failed_ident, guards
+from tools.mutations import (
+    MUTANTS,
+    ROOT,
+    BenchError,
+    BenchTimeout,
+    Mutant,
+    _parse_node_output,
+    baseline,
+    failed_ident,
+    guards,
+    run_tool,
+)
 
 NODE_ID = "tests/test_search_api.py::test_search_ignores_case"
 """Цель, у которой в наборе есть тест с именем-продолжением."""
@@ -116,6 +128,62 @@ def test_tap_output_gives_no_names_at_all():
     привязан к формату, поэтому формат задаёт флаг в ``node_results``.
     """
     assert _parse_node_output(TAP_OUTPUT) == (set(), set())
+
+
+def test_missing_program_is_a_broken_bench_and_not_a_finding():
+    """Отсутствующая программа объявляется поломкой стенда.
+
+    ``subprocess`` сообщает об этом исключением, а не кодом возврата,
+    поэтому без перевода в ``BenchError`` оно доходит до верха трассой и
+    процесс завершается кодом 1 - тем самым, которым стенд сообщает о
+    выживших мутантах.
+    """
+    with pytest.raises(BenchError, match="программа не найдена"):
+        run_tool(["такой-программы-в-системе-нет"])
+
+
+def test_hung_program_is_a_broken_bench_too():
+    """Не уложившаяся в потолок программа снимается и даёт ``BenchTimeout``.
+
+    Второй способ сорвать прогон, о котором ``subprocess`` тоже
+    сообщает исключением. Подвид, а не сам ``BenchError``: отличить
+    зависание от прочих поломок нужно :func:`baseline` - тест ниже.
+
+    Потолок здесь свой, а не :data:`TIMEOUT`: пять минут ожидания ради
+    одного утверждения стенду не нужны.
+    """
+    with pytest.raises(BenchTimeout, match="не уложился"):
+        run_tool([sys.executable, "-c", "import time; time.sleep(30)"], timeout=0.5)
+
+
+def test_hung_browser_run_is_not_taken_for_a_missing_browser(monkeypatch):
+    """Зависший браузерный прогон обрывает стенд, а не списывается на браузер.
+
+    Сорвавшийся прогон :func:`baseline` разбирает повторным запуском
+    без требования браузера: пусто - браузера нет, красно - сломано
+    что-то ещё. Зависанию в этом разборе делать нечего. Повтор
+    пропустил бы сценарии, вернул пустой список, и стенд объявил бы
+    браузер недоступным, браузерных мутантов - непроверенными, а
+    прогон закончил нулём. Зависший браузер выглядел бы отсутствующим.
+
+    Число прогонов проверяется заодно: повтор пятиминутного зависания
+    стоит ещё пять минут.
+    """
+    calls = []
+
+    def hangs(targets, cwd, browser_required=False):
+        calls.append(browser_required)
+        raise BenchTimeout("pytest не уложился в 300 с и снят")
+
+    monkeypatch.setattr("tools.mutations.run_pytest", hangs)
+    mutant = Mutant(
+        "браузерный", "static/index.html", "старое", "новое", "tests/e2e/test_smoke.py::t", "e2e"
+    )
+
+    with pytest.raises(BenchTimeout):
+        baseline([mutant], ROOT)
+
+    assert calls == [True], "зависание ушло в разбор «есть ли браузер» и стоило второго прогона"
 
 
 def test_mutant_table_is_not_empty():
