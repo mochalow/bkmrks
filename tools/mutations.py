@@ -297,8 +297,21 @@ MUTANTS = [
     Mutant(
         "предупреждения больше не становятся ошибками",
         "pytest.ini",
-        "filterwarnings = error\n",
+        "    error\n",
         "",
+        "tests/test_service.py::test_warnings_are_errors",
+        "pytest",
+    ),
+    # Исключение в filterwarnings сужено до одного сообщения. Мутант
+    # расширяет его до класса целиком - ровно та правка, которой
+    # соблазняет красный CI на чужом устаревании. Файл остаётся валидным
+    # INI, набор запускается, а правило молча перестаёт действовать на
+    # всех остальных DeprecationWarning.
+    Mutant(
+        "исключение расширено с сообщения до класса целиком",
+        "pytest.ini",
+        "    ignore:The anyio\\.abc\\.BlockingPortal alias is deprecated:DeprecationWarning\n",
+        "    ignore::DeprecationWarning\n",
         "tests/test_service.py::test_warnings_are_errors",
         "pytest",
     ),

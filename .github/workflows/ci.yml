@@ -42,7 +42,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # Суффикс разводит ключи кэша по версиям матрицы. Без него обе
-      # работы получают один ключ: setup-uv выполняется до `uv venv` и
+      # работы получают один ключ: setup-uv выполняется до `uv sync` и
       # про матрицу не знает, а версию Python берёт у интерпретатора
       # раннера. Кто добежал до сохранения первым, тот и занял запись,
       # второму остаётся предупреждение «Failed to save».
@@ -51,10 +51,13 @@ jobs:
           enable-cache: true
           cache-suffix: ${{ matrix.python-version }}
 
+      # --locked, а не --frozen. Оба берут версии из uv.lock, но сверяет
+      # замок с pyproject.toml только --locked. С --frozen поднятая
+      # вручную нижняя граница без перезамыкания давала зелёный прогон и
+      # уезжала в прод незамеченной - ровно то расхождение, против
+      # которого замок и заведён.
       - name: Установить зависимости
-        run: |
-          uv venv --python ${{ matrix.python-version }}
-          uv pip install -r requirements-dev.txt
+        run: uv sync --locked --python ${{ matrix.python-version }}
 
       - name: Линтер
         run: .venv/bin/ruff check .
