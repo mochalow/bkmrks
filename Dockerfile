@@ -1,9 +1,30 @@
+# uv отдельной стадией, а не установкой пакета внутри образа: версия
+# закрепляется строкой FROM, а её разбирает Dependabot (экосистема docker
+# в .github/dependabot.yml). Запись `COPY --from=ghcr.io/...` он бы не
+# увидел, и появился бы ещё один пин, за которым никто не следит.
+FROM ghcr.io/astral-sh/uv:0.12.13 AS uv
+
 FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY --from=uv /uv /bin/uv
+
+# Замок копируется до исходников: слой с зависимостями пересобирается,
+# только когда меняется он сам, а не на каждую правку main.py.
+#
+# --frozen берёт набор из замка как есть, без пересчёта версий внутри
+# образа. Сверку самого замка с pyproject.toml он не делает - она требует
+# резолва, то есть похода в сеть, и живёт в CI, где стоит `uv sync
+# --locked`.
+# --no-dev оставляет тестовый инструментарий снаружи.
+# --no-cache не оставляет в слое кэш колёс, который в рантайме не нужен.
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-cache
+
+# Окружение в PATH: uvicorn ниже берётся из него, а не из системного
+# интерпретатора, где его нет.
+ENV PATH="/app/.venv/bin:$PATH"
 
 COPY . .
 

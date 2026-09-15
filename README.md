@@ -76,27 +76,23 @@ docker compose up --build
 На Ubuntu / Debian и производных:
 
 ```bash
-# 1. Системные зависимости (один раз)
-sudo apt update
-sudo apt install -y python3 python3-venv python3-pip
+# 1. Системные зависимости (один раз). Python uv ставит себе сам
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # 2. Клонирование и первый запуск
 git clone https://github.com/mochalow/bkmrks
 cd bkmrks
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn main:app --reload
+uv sync                            # окружение .venv из uv.lock
+uv run uvicorn main:app --reload
 ```
 
 Приложение поднимется на `http://localhost:8000`. Данные живут в `data/articles/` рядом
 с кодом.
 
-**Примечание.** При каждом новом запуске в терминале нужно заново активировать окружение:
+**Примечание.** Активировать окружение вручную не нужно: `uv run` сам берёт `.venv` проекта.
 
 ```bash
-source .venv/bin/activate
-uvicorn main:app --reload
+uv run uvicorn main:app --reload
 ```
 
 Остановить: `Ctrl+C` в терминале.
@@ -121,19 +117,18 @@ uvicorn main:app --reload
 `library`, `reader` в `static/js/`).
 
 ```bash
-# 1. Системные пакеты: Python, venv, Node.js, make, git
+# 1. Системные пакеты: uv, Node.js, make, git
+curl -LsSf https://astral.sh/uv/install.sh | sh
 sudo apt update
-sudo apt install -y python3 python3-venv python3-pip nodejs npm make git
+sudo apt install -y nodejs npm make git
 
 # 2. Клонирование
 git clone https://github.com/mochalow/bkmrks
 cd bkmrks
 
-# 3. Python-окружение: сначала зависимости проекта (нужны autodoc), потом Sphinx
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt        # Без этого import main упадёт при сборке
-pip install -r docs/requirements.txt   # Sphinx, тема Furo и MyST
+# 3. Python-окружение: зависимости проекта (нужны autodoc) и Sphinx одной командой
+uv sync --group docs
+source .venv/bin/activate   # make -C docs зовёт sphinx-build по имени
 
 # 4. Node.js-зависимости (нужны для JSDoc)
 cd docs && npm install && cd ..

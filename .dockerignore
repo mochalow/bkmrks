@@ -5,7 +5,6 @@ data/
 tests/
 tools/
 .github/
-requirements-dev.txt
 pytest.ini
 ruff.toml
 .coverage

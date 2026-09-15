@@ -1,5 +1,7 @@
 """Служебные эндпоинты и контракт монтирования приложения."""
 
+import subprocess
+import sys
 import warnings
 
 import pytest
@@ -106,3 +108,38 @@ def test_warnings_are_errors(category):
     """
     with pytest.raises(category):
         warnings.warn("сторож правила filterwarnings", category)
+
+
+def test_the_anyio_deprecation_still_needs_its_exception():
+    """Исключение в ``pytest.ini`` всё ещё покрывает живое устаревание.
+
+    В ``filterwarnings`` стоит одна строка ``ignore`` - на сообщение, которое
+    печатает ``starlette.testclient``, обращаясь к устаревшему псевдониму
+    ``anyio.abc.BlockingPortal``. Чужой код чинить здесь нечем, поэтому
+    исключение записано поимённо, а не классом целиком.
+
+    Главный риск такой строки - молчаливо пережить свою причину: когда
+    starlette перестанет печатать это сообщение, ``ignore`` останется и
+    начнёт глушить чужое устаревание с тем же текстом. Ослабление правила
+    из временного станет постоянным, и заметить это будет негде. Сторож
+    делает момент громким: он краснеет ровно тогда, когда строку пора убрать.
+
+    Импорт идёт отдельным процессом: в текущем ``starlette.testclient`` уже
+    загружен конфтестом, а предупреждение печатается один раз - при первом
+    импорте.
+    """
+    finished = subprocess.run(
+        [sys.executable, "-W", "error::DeprecationWarning", "-c", "import starlette.testclient"],
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+
+    assert finished.returncode != 0, (
+        "starlette.testclient больше не трогает устаревший псевдоним anyio: "
+        "уберите строку ignore из filterwarnings в pytest.ini вместе с этим сторожем"
+    )
+    assert "anyio.abc.BlockingPortal alias is deprecated" in finished.stderr, (
+        "импорт starlette.testclient падает на другом устаревании, а не на том, "
+        "под которое написано исключение в pytest.ini"
+    )
