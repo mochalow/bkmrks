@@ -2,7 +2,7 @@
 # закрепляется строкой FROM, а её разбирает Dependabot (экосистема docker
 # в .github/dependabot.yml). Запись `COPY --from=ghcr.io/...` он бы не
 # увидел, и появился бы ещё один пин, за которым никто не следит.
-FROM ghcr.io/astral-sh/uv:0.12.13 AS uv
+FROM ghcr.io/astral-sh/uv:0.12.15 AS uv
 
 FROM python:3.12-slim
 
