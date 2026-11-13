@@ -4,7 +4,7 @@
 # увидел, и появился бы ещё один пин, за которым никто не следит.
 FROM ghcr.io/astral-sh/uv:0.12.15 AS uv
 
-FROM python:3.12-slim
+FROM python:3.15-slim
 
 WORKDIR /app
 
